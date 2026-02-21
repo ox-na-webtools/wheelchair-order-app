@@ -961,7 +961,7 @@ const App = () => {
 
   useEffect(() => {
     if (!derivedBackAngleValue) return;
-    const lockSbSeries = new Set(['GWX3','MX_MR','GWE', 'LX_LR', 'FX_FR']);
+    const lockSbSeries = new Set(['GWX3','SX_SR','MX_MR','GWE', 'LX_LR', 'FX_FR']);
     if (!lockSbSeries.has(selectedSeries)) return;
     setDimensions(d => (d.sb === derivedBackAngleValue ? d : { ...d, sb: derivedBackAngleValue }));
   }, [derivedBackAngleValue, selectedSeries]);
@@ -2008,3 +2008,4 @@ doc.save(fileName);
 };
 
 ReactDOM.render(<App />, document.getElementById("root"));
+
