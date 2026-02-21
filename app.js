@@ -772,7 +772,7 @@ const App = () => {
     customColors: ['', '', ''] 
   });
 
-  const [dimensions, setDimensions] = useState({ w1: '320', l1: '350', offset: '0', h4Type: 'ミディアム', h4Val: '350', sb: '90', l8: '50', cm: '0°', lever: '75', w2: '10' });
+  const [dimensions, setDimensions] = useState({ w1: '', l1: '', offset: '', h4Type: '', h4Val: '', sb: '', l8: '', cm: '', lever: '', w2: '' });
   const [remarks, setRemarks] = useState('');
   const [gweUnitDetail, setGweUnitDetail] = useState({ unitId: '', parts: {} });
   const [armrestSel, setArmrestSel] = useState({ kind: '', lh: '', ah: '' });
@@ -823,16 +823,17 @@ const App = () => {
   }, [selections.axleType, frameParts.height, selectedSeries]);
 
   useEffect(() => {
-    if (l8Options.length > 0) {
+    if (l8Options.length === 1) return;
+    if (l8Options.length > 1 && dimensions.l8 !== '') {
       const optionStrings = l8Options.map(String);
       if (!optionStrings.includes(String(dimensions.l8))) {
-        setDimensions(prev => ({ ...prev, l8: String(l8Options[0]) }));
+        setDimensions(prev => ({ ...prev, l8: '' }));
       }
     }
   }, [l8Options, dimensions.l8]);
 
   useEffect(() => {
-    if (selectedSeries !== 'GWE') return;
+    if (selectedSeries !== 'GWE' || !frameParts.height) return;
     const h = frameParts.height?.label ?? frameParts.height ?? '';
     const nextOffset = String(h).includes('フラット') ? '-20' : '0';
     setDimensions(d => (d.offset === nextOffset ? d : { ...d, offset: nextOffset }));
@@ -961,10 +962,116 @@ const App = () => {
 
   useEffect(() => {
     if (!derivedBackAngleValue) return;
-    const lockSbSeries = new Set(['GWX3','SX_SR','MX_MR','GWE', 'LX_LR', 'FX_FR']);
+    const lockSbSeries = new Set(['GWX3','MX_MR','GWE', 'LX_LR', 'FX_FR']);
     if (!lockSbSeries.has(selectedSeries)) return;
     setDimensions(d => (d.sb === derivedBackAngleValue ? d : { ...d, sb: derivedBackAngleValue }));
   }, [derivedBackAngleValue, selectedSeries]);
+
+  // 寸法ごとの選択肢（選択肢が1つのときはその値を自動表示するため）
+  const dimensionOptsMap = useMemo(() => {
+    if (!currentCatalog?.dimensionRules) return {};
+    const lockSbSeries = new Set(['GWX3', 'MX_MR', 'GWE', 'LX_LR', 'FX_FR']);
+    const isSbLocked = lockSbSeries.has(selectedSeries) && !!derivedBackAngleValue;
+    const sbOpts = isSbLocked ? [derivedBackAngleValue] : (currentCatalog.dimensionRules.sbMap ? (currentCatalog.dimensionRules.sbMap[dimensions.offset] || []) : (currentCatalog.dimensionRules.sb || []));
+    let l1Opts = [];
+    if (selectedSeries === 'MX_MR' && frameParts.size?.label) {
+      l1Opts = frameParts.size.label === 'Sサイズ' ? ['330'] : ['350', '380', '420'];
+    } else {
+      l1Opts = currentCatalog.dimensionRules.l1Map ? (currentCatalog.dimensionRules.l1Map[dimensions.offset] || []) : (currentCatalog.dimensionRules.l1 || []);
+    }
+    return {
+      offset: (selectedSeries === 'NEOplus' || selectedSeries === 'NEO') ? (currentCatalog.dimensionRules.offset || []) : [],
+      h4Type: Object.keys(currentCatalog.dimensionRules.h4 || {}),
+      h4Val: (currentCatalog.dimensionRules.h4?.[dimensions.h4Type] || []).map(String),
+      l8: (l8Options || []).map(String),
+      lever: (currentCatalog.dimensionRules.lever || []).map(String),
+      w1: (currentCatalog.dimensionRules.w1 || []).map(String),
+      l1: (l1Opts || []).map(String),
+      sb: (sbOpts || []).map(String),
+      w2: (currentCatalog.dimensionRules.w2 || []).map(String),
+      cm: (camberOptions || []).map(String)
+    };
+  }, [currentCatalog, selectedSeries, dimensions.offset, dimensions.h4Type, frameParts.size, derivedBackAngleValue, l8Options, camberOptions]);
+
+  useEffect(() => {
+    setDimensions(prev => {
+      let next = { ...prev };
+      let changed = false;
+      Object.entries(dimensionOptsMap).forEach(([key, opts]) => {
+        const arr = Array.isArray(opts) ? opts : [];
+        if (arr.length === 1) {
+          const single = String(arr[0]);
+          if (prev[key] !== single) {
+            next[key] = single;
+            changed = true;
+          }
+        }
+      });
+      return changed ? next : prev;
+    });
+  }, [dimensionOptsMap]);
+
+  // 確定表示前にチェックする必須項目（オプション・アクセサリー・選択肢1つの寸法は除く）
+  const DIMENSION_LABELS = { offset: 'オフセット', h4Type: 'H4 バック高（タイプ）', h4Val: 'H4 バック高（値）', l8: '車軸/ﾚﾊﾞｰ長 (L8)', lever: 'ﾚﾊﾞｰ長', w1: 'W1', l1: 'L1', sb: 'SB', w2: 'W2', cm: 'キャンバー' };
+  const missingRequiredItems = useMemo(() => {
+    const missing = [];
+    if (!selectedSeries || !currentCatalog) return missing;
+
+    if (selectedSeries !== 'NEO' && currentCatalog.baseModels?.length && !selections.baseModel) missing.push('基本構成モデル');
+    if ((selectedSeries === 'MX_MR' || selectedSeries === 'NEO') && !selections.package) missing.push('パッケージ');
+
+    if (currentCatalog.frameOptions) {
+      const frameLabels = { type: 'フレームタイプ', shape: selectedSeries === 'NEO' ? 'フレーム前方形状' : '前方形状', length: '長さ', height: '高さ', pipe: 'フロントパイプ', size: 'サイズ' };
+      Object.keys(currentCatalog.frameOptions).forEach(cat => {
+        if (!frameParts[cat]) missing.push(frameLabels[cat] || cat);
+      });
+    }
+
+    if (selectedSeries === 'GWE') {
+      if (!gweUnitDetail?.unitId) missing.push('電動ユニット（GW-E）');
+      else if (GWE_UNIT_DETAIL_MASTER[gweUnitDetail.unitId]?.groups) {
+        GWE_UNIT_DETAIL_MASTER[gweUnitDetail.unitId].groups.forEach(g => {
+          if (!gweUnitDetail.parts?.[g.key]) missing.push(`電動ユニット - ${g.label}`);
+        });
+      }
+    }
+
+    if (currentCatalog.axleTypes?.length && !selections.axleType) missing.push('車軸タイプ');
+    if (currentCatalog.casterForks?.length && !selections.casterFork) missing.push('キャスターフォーク');
+    if (!casterWheelType) missing.push('キャスターホイール（種類）');
+    if (casterWheelType && !casterWheelSize) missing.push('キャスターホイール（サイズ）');
+
+    if (currentCatalog.footrests?.length && !selections.footrest) missing.push('フットレスト');
+    if (currentCatalog.brakes?.length && !selections.brake) missing.push('ブレーキシステム');
+
+    if (selectedSeries !== 'GWE') {
+      if (currentCatalog.wheels?.length && !selections.wheel) missing.push('メインホイール（種類）');
+      if (!selections.wheelSize) missing.push('メインホイール（サイズ）');
+      if (currentCatalog?.tireBrand && !selections.tire) missing.push('タイヤカラー');
+      if (HANDRIM_OPTIONS?.length && !selections.handrim) missing.push('ハンドリム');
+    }
+
+    Object.entries(dimensionOptsMap || {}).forEach(([key, opts]) => {
+      const arr = Array.isArray(opts) ? opts : [];
+      if (arr.length <= 1) return;
+      if (key === 'h4Type' || key === 'h4Val') {
+        if (key === 'h4Type' && !dimensions.h4Type) missing.push(DIMENSION_LABELS.h4Type);
+        if (key === 'h4Val' && dimensions.h4Type && (!dimensions.h4Val || String(dimensions.h4Val).trim() === '')) missing.push(DIMENSION_LABELS.h4Val);
+        return;
+      }
+      const val = dimensions[key];
+      if (val === undefined || val === null || String(val).trim() === '') missing.push(DIMENSION_LABELS[key] || key);
+    });
+
+    if (armrestSel.kind && (!armrestSel.lh || !armrestSel.ah)) missing.push('アームレスト（高低・高さ）');
+
+    return missing;
+  }, [selectedSeries, currentCatalog, selections, frameParts, dimensionOptsMap, dimensions, casterWheelType, casterWheelSize, gweUnitDetail, armrestSel]);
+
+  const [showMissingRequired, setShowMissingRequired] = useState([]);
+  useEffect(() => {
+    if (missingRequiredItems.length === 0) setShowMissingRequired([]);
+  }, [missingRequiredItems.length]);
 
   // 車軸名称の動的計算
   const getAxleDisplayName = useCallback((item) => {
@@ -1109,8 +1216,7 @@ add('ハンドリム', selections.handrim);
     
     setPaint({ type: 'standard', standardColor: initialColor, customColors: ['', '', ''] });
     setIsConfirmed(false); setShowConfirmReset(null); setRemarks(''); setGweUnitDetail({ unitId: '', parts: {} });
-    const defaultL8 = (key === 'MX_MR') ? '60' : '50';
-    setDimensions({ w1: cat.dimensionRules?.w1?.[0]?.toString() || '320', l1: (cat.dimensionRules?.l1Map?.['0']?.[0] || cat.dimensionRules?.l1?.[0])?.toString() || '350', offset: '0', h4Type: (key === 'MX_MR' || key === 'NEO') ? 'ミディアム' : Object.keys(cat.dimensionRules?.h4 || {})[0], h4Val: (key === 'MX_MR' || key === 'NEO') ? '350' : cat.dimensionRules?.h4?.[Object.keys(cat.dimensionRules?.h4 || {})[0]]?.[0], sb: cat.dimensionRules?.sb?.[0]?.toString() || '90', l8: defaultL8, cm: '0°', lever: '75', w2: '10' });
+    setDimensions({ w1: '', l1: '', offset: '', h4Type: '', h4Val: '', sb: '', l8: '', cm: '', lever: '', w2: '' });
   }, []);
 
   const handleSeriesSelect = (key) => {
@@ -1469,12 +1575,39 @@ doc.save(fileName);
               <span className="text-[10px] font-bold text-blue-400 uppercase mb-1 leading-none">Subtotal</span>
               <span className="text-2xl font-black font-mono tracking-tighter text-blue-400 leading-none">¥{totalAmount.toLocaleString()}</span>
             </div>
-            <button disabled={!selectedSeries} onClick={() => setShowTotalBreakdown(true)} className="bg-blue-600 px-8 py-3 rounded-xl font-black text-xs hover:bg-blue-700 disabled:opacity-20 flex items-center gap-2 shadow-lg shadow-blue-500/20">確定表示 <ChevronRight size={16} /></button>
+            <button
+              disabled={!selectedSeries}
+              onClick={() => {
+                if (missingRequiredItems.length > 0) {
+                  setShowMissingRequired(missingRequiredItems);
+                  return;
+                }
+                setShowMissingRequired([]);
+                setShowTotalBreakdown(true);
+              }}
+              className="bg-blue-600 px-8 py-3 rounded-xl font-black text-xs hover:bg-blue-700 disabled:opacity-20 flex items-center gap-2 shadow-lg shadow-blue-500/20"
+            >確定表示 <ChevronRight size={16} /></button>
           </div>
         </div>
       </nav>
 
-      <div className="h-[92px]" />
+      {showMissingRequired.length > 0 && (
+        <div className="fixed top-[72px] left-0 right-0 z-40 bg-amber-500 text-slate-900 shadow-lg border-b border-amber-600">
+          <div className="max-w-7xl mx-auto px-4 py-4 flex items-start gap-3">
+            <AlertTriangle size={22} className="flex-shrink-0 mt-0.5 text-amber-700" />
+            <div>
+              <p className="font-black text-sm uppercase tracking-wide mb-2">以下の項目が未選択です。選択してから再度「確定表示」を押してください。</p>
+              <ul className="list-disc list-inside text-sm font-bold space-y-1 flex flex-wrap gap-x-6 gap-y-1">
+                {showMissingRequired.map((label, i) => (
+                  <li key={i}>{label}</li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className={showMissingRequired.length > 0 ? 'h-[140px]' : 'h-[92px]'} />
 
       <main className="max-w-7xl mx-auto p-4 md:p-8">
         {!isConfirmed ? (
@@ -1764,6 +1897,7 @@ doc.save(fileName);
                               return next;
                             });
                           }}>
+                            {(currentCatalog.dimensionRules?.offset?.length || 0) > 1 && <option value="">選択</option>}
                             {currentCatalog.dimensionRules?.offset?.map(v => <option key={v} value={v}>{v}mm</option>)}
                           </select>
                         </div>
@@ -1771,9 +1905,11 @@ doc.save(fileName);
                       <div className="space-y-2 bg-slate-50 p-5 rounded-3xl border border-slate-200/50 shadow-inner">
                         <label className="block text-[10px] font-black text-slate-400 uppercase mb-1 tracking-widest italic">H4 バック高</label>
                         <select className="w-full bg-white border rounded-xl p-2 text-xs font-bold outline-none mb-2" value={dimensions.h4Type} onChange={e => setDimensions(d => ({...d, h4Type: e.target.value}))}>
+                          {Object.keys(currentCatalog.dimensionRules?.h4 || {}).length > 1 && <option value="">選択</option>}
                           {Object.keys(currentCatalog.dimensionRules?.h4 || {}).map(v => <option key={v} value={v}>{v}</option>)}
                         </select>
                         <select className="w-full bg-white border rounded-xl p-2 text-xs font-bold outline-none" value={dimensions.h4Val} onChange={e => setDimensions(d => ({...d, h4Val: e.target.value}))}>
+                          {((currentCatalog.dimensionRules?.h4?.[dimensions.h4Type] || []).length > 1) && <option value="">選択</option>}
                           {(currentCatalog.dimensionRules?.h4?.[dimensions.h4Type] || []).map(v => <option key={v} value={v}>{v}mm</option>)}
                         </select>
                       </div>
@@ -1781,10 +1917,12 @@ doc.save(fileName);
                         <label className="block text-[10px] font-black text-slate-400 uppercase mb-1 tracking-widest italic">{['LX_LR', 'FX_FR'].includes(selectedSeries) ? 'ﾚﾊﾞｰ長' : '車軸 / ﾚﾊﾞｰ長'}</label>
                         {!['LX_LR', 'FX_FR'].includes(selectedSeries) && (
                           <select className="w-full bg-white border rounded-xl p-2 text-xs font-bold outline-none mb-2" value={dimensions.l8} onChange={e => setDimensions(d => ({...d, l8: e.target.value}))}>
+                            {l8Options.length > 1 && <option value="">選択</option>}
                             {l8Options.map(v => <option key={v} value={v}>{v}mm</option>)}
                           </select>
                         )}
                         <select className="w-full bg-white border rounded-xl p-2 text-xs font-bold outline-none" value={dimensions.lever} onChange={e => setDimensions(d => ({...d, lever: e.target.value}))}>
+                          {(currentCatalog.dimensionRules?.lever || []).length > 1 && <option value="">選択</option>}
                           {(currentCatalog.dimensionRules?.lever || []).map(v => <option key={v} value={v}>{v}mm(レバー長)</option>)}
                         </select>
                       </div>
@@ -1805,6 +1943,7 @@ doc.save(fileName);
                             <div key={k} className="w-20 text-center">
                               <span className="text-[8px] font-black text-slate-400 block mb-1 uppercase tracking-widest">{k.toUpperCase()}</span>
                               <select className="w-full bg-white border rounded-xl p-2 text-xs font-black outline-none shadow-sm text-center" value={dimensions[k]} onChange={e => setDimensions(d => ({ ...d, [k]: e.target.value }))} disabled={(k === 'cm' && selections.axleType?.id === 'axle_b') || (k === 'sb' && isSbLocked) || (k === 'l1' && selectedSeries === 'MX_MR' && frameParts.size?.label === 'Sサイズ')}>
+                                {opts.length > 1 && <option value="">選択</option>}
                                 {opts.map(v => <option key={v} value={v}>{v}{k === 'sb' ? '°' : ''}</option>)}
                               </select>
                             </div>
@@ -2008,4 +2147,3 @@ doc.save(fileName);
 };
 
 ReactDOM.render(<App />, document.getElementById("root"));
-
