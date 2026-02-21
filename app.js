@@ -962,7 +962,7 @@ const App = () => {
 
   useEffect(() => {
     if (!derivedBackAngleValue) return;
-    const lockSbSeries = new Set(['GWX3','MX_MR','GWE', 'LX_LR', 'FX_FR']);
+    const lockSbSeries = new Set(['GWX3','MX_MR','GWE', 'LX_LR', 'FX_FR', 'SX_SR']);
     if (!lockSbSeries.has(selectedSeries)) return;
     setDimensions(d => (d.sb === derivedBackAngleValue ? d : { ...d, sb: derivedBackAngleValue }));
   }, [derivedBackAngleValue, selectedSeries]);
@@ -970,7 +970,7 @@ const App = () => {
   // 寸法ごとの選択肢（選択肢が1つのときはその値を自動表示するため）
   const dimensionOptsMap = useMemo(() => {
     if (!currentCatalog?.dimensionRules) return {};
-    const lockSbSeries = new Set(['GWX3', 'MX_MR', 'GWE', 'LX_LR', 'FX_FR']);
+    const lockSbSeries = new Set(['GWX3', 'MX_MR', 'GWE', 'LX_LR', 'FX_FR', 'SX_SR']);
     const isSbLocked = lockSbSeries.has(selectedSeries) && !!derivedBackAngleValue;
     const sbOpts = isSbLocked ? [derivedBackAngleValue] : (currentCatalog.dimensionRules.sbMap ? (currentCatalog.dimensionRules.sbMap[dimensions.offset] || []) : (currentCatalog.dimensionRules.sb || []));
     let l1Opts = [];
@@ -1929,7 +1929,7 @@ doc.save(fileName);
 
                       <div className="bg-blue-50/40 p-5 rounded-[2rem] border border-blue-100 col-span-full flex flex-wrap gap-6 justify-center">
                         {['w1', 'l1', 'sb', 'w2', 'cm'].map(k => {
-                          const lockSbSeries = new Set(['GWX3', 'MX_MR', 'GWE', 'LX_LR', 'FX_FR']);
+                          const lockSbSeries = new Set(['GWX3', 'MX_MR', 'GWE', 'LX_LR', 'FX_FR', 'SX_SR']);
                           const isSbLocked = (k === 'sb') && lockSbSeries.has(selectedSeries) && !!derivedBackAngleValue;
                           let opts = [];
                           if (k === 'cm') opts = camberOptions;
@@ -2013,6 +2013,7 @@ doc.save(fileName);
                     </div>
                   )}
                   {derivedFrameNo && <div className="flex justify-between items-start border-b pb-2 text-left"><span className="text-[9px] text-slate-400 font-black uppercase w-16 pt-1 tracking-widest">Frame No</span><p className="text-[11px] font-black text-blue-600 font-mono uppercase tracking-widest flex-1 text-right">{derivedFrameNo}</p></div>}
+                  {derivedBackAngle && <div className="flex justify-between items-start border-b pb-2 text-left"><span className="text-[9px] text-slate-400 font-black uppercase w-16 pt-1 tracking-widest">背角度</span><p className="text-[11px] font-black text-slate-800 font-mono tracking-widest flex-1 text-right">{derivedBackAngle}</p></div>}
                   {Object.entries(selections).map(([k,v]) => v && (
                     <div key={k} className="flex justify-between items-start border-b pb-2 text-left">
                       <span className="text-[9px] text-slate-400 font-black uppercase w-16 pt-1 tracking-widest">{k}</span>
