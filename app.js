@@ -768,7 +768,7 @@ const App = () => {
   // 塗装プランの初期化
   const [paint, setPaint] = useState({ 
     type: 'standard', 
-    standardColor: 'S-01 ホワイト', 
+    standardColor: '', 
     customColors: ['', '', ''] 
   });
 
@@ -1180,7 +1180,7 @@ add('ハンドリム', selections.handrim);
     const activePlan = PAINT_PLANS.find(p => p.id === paint.type);
     if (activePlan) items.push({ label: '塗装プラン', name: activePlan.name, no: '塗装', price: getPrice(activePlan.priceKey) });
     
-    let colorDisplay = paint.standardColor;
+    let colorDisplay = paint.type === 'standard' ? (paint.standardColor || '選択') : '';
     if (paint.type !== 'standard') {
       const customColors = paint.customColors.filter(c => c.trim() !== '');
       if (customColors.length > 0) colorDisplay = customColors.join(' / ');
@@ -1209,12 +1209,7 @@ add('ハンドリム', selections.handrim);
     setCasterWheelType(null); setCasterWheelSize(null);
     setSelectedOptions([]); setSelectedAccessories([]);
     
-    let initialColor = 'S-01 ホワイト';
-    if (key === 'NEO') initialColor = 'M-01 ブラックメタリック';
-    else if (key === 'MX_MR') initialColor = 'S-11 マリンブルー';
-    else if (key === 'Fusion') initialColor = FUSION_STANDARD_COLORS[0];
-    
-    setPaint({ type: 'standard', standardColor: initialColor, customColors: ['', '', ''] });
+    setPaint({ type: 'standard', standardColor: '', customColors: ['', '', ''] });
     setIsConfirmed(false); setShowConfirmReset(null); setRemarks(''); setGweUnitDetail({ unitId: '', parts: {} });
     setDimensions({ w1: '', l1: '', offset: '', h4Type: '', h4Val: '', sb: '', l8: '', cm: '', lever: '', w2: '' });
   }, []);
@@ -1834,6 +1829,7 @@ doc.save(fileName);
                               value={paint.standardColor} 
                               onChange={e => setPaint({...paint, standardColor: e.target.value})}
                             >
+                              <option value="">選択</option>
                               {(selectedSeries === 'Fusion' 
                                 ? FUSION_STANDARD_COLORS 
                                 : (selectedSeries === 'NEO' 
@@ -2032,7 +2028,7 @@ doc.save(fileName);
                     <div className="text-right flex-1">
                       <p className="text-[11px] font-black text-slate-800 uppercase leading-tight tracking-tighter">{PAINT_PLANS.find(p => p.id === paint.type)?.name}</p>
                       <p className="text-[11px] font-black text-blue-600 uppercase leading-tight tracking-tighter mt-1">
-                        {paint.type === 'standard' ? paint.standardColor : (paint.customColors.filter(c => c.trim() !== '').join(' / ') || "色名未入力")}
+                        {paint.type === 'standard' ? (paint.standardColor || '選択') : (paint.customColors.filter(c => c.trim() !== '').join(' / ') || "色名未入力")}
                       </p>
                     </div>
                   </div>
