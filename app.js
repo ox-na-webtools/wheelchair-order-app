@@ -1313,8 +1313,37 @@ doc.setFont("NotoSansJP");
     // フッター描画
     drawFinalFooter();
 
-    // 出力
-    doc.save(fileName);
+    // 出力（iPhone対策）
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+
+// ① Blob を作る
+const blob = doc.output("blob");
+
+// ② iPhoneは共有（対応していれば「ファイルに保存」できる）
+if (isIOS) {
+  try {
+    const file = new File([blob], fileName, { type: "application/pdf" });
+
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({
+        files: [file],
+        title: fileName,
+      });
+      return; // ここで終了
+    }
+  } catch (e) {
+    // share失敗時は下へ
+  }
+
+  // ③ 共有が無理なら、新しいタブでPDFを開く（そこから共有→保存）
+  const url = URL.createObjectURL(blob);
+  window.open(url, "_blank");
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  return;
+}
+
+// ④ PCなどは従来どおりダウンロード
+doc.save(fileName);
   };
 
   return (
