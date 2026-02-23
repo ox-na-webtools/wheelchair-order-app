@@ -1558,7 +1558,7 @@ doc.save(fileName);
       )}
 
       <nav className="bg-slate-900 text-white p-5 fixed top-0 inset-x-0 z-50 shadow-xl border-b border-white/5">
-        <div className="max-w-7xl mx-auto flex justify-between items-center">
+        <div className="max-w-7xl mx-auto flex justify-between items-center gap-2">
           <div className="flex items-center gap-3">
             <div className="bg-blue-600 p-2.5 rounded-xl"><Settings size={20} /></div>
             <div>
@@ -1570,6 +1570,9 @@ doc.save(fileName);
             <div className="flex flex-col text-right min-w-0">
               <span className="text-[10px] font-bold text-blue-400 uppercase mb-1 leading-none">Subtotal</span>
               <span className="text-xl md:text-2xl font-black font-mono tracking-tighter text-blue-400 leading-none truncate">¥{totalAmount.toLocaleString()}</span>
+              {showMissingRequired.length > 0 && (
+                <span className="text-[9px] text-amber-400 mt-1 leading-none">未選択の項目があります</span>
+              )}
             </div>
           </div>
         </div>
@@ -1598,16 +1601,7 @@ doc.save(fileName);
         </div>
       )}
 
-      {showMissingRequired.length > 0 && (
-        <div className="fixed top-0 left-0 right-0 z-[60] bg-amber-500 text-slate-900 shadow-lg border-b-2 border-amber-600 pt-[env(safe-area-inset-top,0px)]">
-          <div className="max-w-7xl mx-auto px-4 py-3 flex items-center gap-3">
-            <AlertTriangle size={20} className="flex-shrink-0 text-amber-700" />
-            <p className="font-black text-sm uppercase tracking-wide">未記入があります</p>
-          </div>
-        </div>
-      )}
-
-      <div className={showMissingRequired.length > 0 ? 'h-14 min-h-[56px]' : 'h-[92px]'} />
+      <div className="h-[92px]" />
 
       <main className="max-w-7xl mx-auto p-4 md:p-8">
         {!isConfirmed ? (
