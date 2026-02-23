@@ -1352,11 +1352,10 @@ doc.setFont("NotoSansJP");
       addText(item.name, margin + 40, y, 9);
       addText(item.no, margin + 120, y, 9);
       addText(item.price === 0 ? "込" : yen(item.price), pageWidth - margin - 2, y, 9, 'normal', 'right');
-      
-      y += 6;
       doc.setDrawColor(230);
-      doc.line(margin, y - 1, pageWidth - margin, y - 1);
+      doc.line(margin, y + 2, pageWidth - margin, y + 2);
       doc.setDrawColor(0);
+      y += 6;
     });
 
     // 寸法
