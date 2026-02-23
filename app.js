@@ -735,6 +735,21 @@ const BACK_ANGLE_RULES = {
   },
 };
 
+const SelectionGroup = ({ title, items, selectionKey, dynamicNameFn, isInvalid, selections, setSelections }) => (
+  <div className={`rounded-2xl shadow-sm overflow-hidden mb-6 border-2 ${isInvalid ? 'border-red-500 bg-red-50' : 'border border-slate-200 bg-white'}`}>
+    <div className={`px-5 py-3 border-b flex items-center gap-2 font-bold text-slate-800 tracking-widest uppercase text-xs ${isInvalid ? 'border-red-200 bg-red-100' : 'border-slate-200 bg-slate-50'}`}>{title}</div>
+    <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+      {(items || []).map(item => (
+        <button key={item.id} type="button" onClick={() => setSelections(prev => ({ ...prev, [selectionKey]: item }))} className={`flex flex-col p-4 border rounded-xl text-left transition-all ${selections[selectionKey]?.id === item.id ? 'border-blue-600 bg-blue-50 ring-1 ring-blue-600' : 'border-slate-100 bg-white hover:border-blue-300'}`}>
+          <span className="text-[10px] font-black text-blue-500 uppercase mb-1">{item.no}</span>
+          <span className="text-sm font-bold text-slate-700 leading-tight">{dynamicNameFn ? dynamicNameFn(item) : item.name}</span>
+          <span className="text-[11px] font-mono font-black text-slate-400 mt-2">{itemPrice(item) === 0 ? "標準" : (itemPrice(item) > 0 ? `+¥${itemPrice(item).toLocaleString()}` : `¥${itemPrice(item).toLocaleString()}`)}</span>
+        </button>
+      ))}
+    </div>
+  </div>
+);
+
 const App = () => {
   const [selectedSeries, setSelectedSeries] = useState(null);
   const [selections, setSelections] = useState({
@@ -1012,7 +1027,7 @@ const App = () => {
   }, [dimensionOptsMap]);
 
   // 確定表示前にチェックする必須項目（オプション・アクセサリー・選択肢1つの寸法は除く）
-  const DIMENSION_LABELS = { offset: 'オフセット', h4Type: 'H4 バック高（タイプ）', h4Val: 'H4 バック高（値）', l8: '車軸/ﾚﾊﾞｰ長 (L8)', lever: 'ﾚﾊﾞｰ長', w1: 'W1', l1: 'L1', sb: 'SB', w2: 'W2', cm: 'キャンバー' };
+  const DIMENSION_LABELS = { offset: 'オフセット', h4Type: 'H4 バック高（タイプ）', h4Val: 'H4 バック高（値）', l8: '車軸/ﾚﾊﾞｰ長 (L8)', lever: 'ﾚﾊﾞｰ長', w1: '座幅(W1)', l1: '座奥行(L1)', sb: 'バックレスト角(SB)', w2: 'ハンドリム間隔(W2)', cm: 'キャンバー' };
   const missingRequiredItems = useMemo(() => {
     const missing = [];
     if (!selectedSeries || !currentCatalog) return missing;
@@ -1212,27 +1227,13 @@ add('ハンドリム', selections.handrim);
     setPaint({ type: 'standard', standardColor: '', customColors: ['', '', ''] });
     setIsConfirmed(false); setShowConfirmReset(null); setRemarks(''); setGweUnitDetail({ unitId: '', parts: {} });
     setDimensions({ w1: '', l1: '', offset: '', h4Type: '', h4Val: '', sb: '', l8: '', cm: '', lever: '', w2: '' });
+    setShowMissingRequired([]);
   }, []);
 
   const handleSeriesSelect = (key) => {
     if (selectedSeries && selectedSeries !== key) setShowConfirmReset(key);
     else performSeriesReset(key);
   };
-
-  const SelectionGroup = ({ title, items, selectionKey, dynamicNameFn }) => (
-    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-6">
-      <div className="bg-slate-50 px-5 py-3 border-b border-slate-200 flex items-center gap-2 font-bold text-slate-800 tracking-widest uppercase text-xs">{title}</div>
-      <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        {(items || []).map(item => (
-          <button key={item.id} type="button" onClick={() => setSelections(prev => ({ ...prev, [selectionKey]: item }))} className={`flex flex-col p-4 border rounded-xl text-left transition-all ${selections[selectionKey]?.id === item.id ? 'border-blue-600 bg-blue-50 ring-1 ring-blue-600' : 'border-slate-100 bg-white hover:border-blue-300'}`}>
-            <span className="text-[10px] font-black text-blue-500 uppercase mb-1">{item.no}</span>
-            <span className="text-sm font-bold text-slate-700 leading-tight">{dynamicNameFn ? dynamicNameFn(item) : item.name}</span>
-            <span className="text-[11px] font-mono font-black text-slate-400 mt-2">{itemPrice(item) === 0 ? "標準" : (itemPrice(item) > 0 ? `+¥${itemPrice(item).toLocaleString()}` : `¥${itemPrice(item).toLocaleString()}`)}</span>
-          </button>
-        ))}
-      </div>
-    </div>
-  );
 
   const toggleItem = (item, list, setList) => {
     if (list.find(i => i.id === item.id)) setList(list.filter(i => i.id !== item.id));
@@ -1364,10 +1365,11 @@ doc.setFont("NotoSansJP");
     addText("02. 指定寸法一覧", margin, y, 11);
     y += 8;
     const dimList = Object.entries(dimensions);
+    const dimLabels = { offset: 'オフセット', h4Type: 'H4 バック高（タイプ）', h4Val: 'H4 バック高（値）', l8: '車軸/ﾚﾊﾞｰ長 (L8)', lever: 'ﾚﾊﾞｰ長', w1: '座幅(W1)', l1: '座奥行(L1)', sb: 'バックレスト角(SB)', w2: 'ハンドリム間隔(W2)', cm: 'キャンバー' };
     dimList.forEach(([k, v], idx) => {
       const col = idx % 4;
       const row = Math.floor(idx / 4);
-      addText(`${k.toUpperCase()}: ${v}`, margin + (col * 45), y + (row * 6), 9);
+      addText(`${dimLabels[k] || k.toUpperCase()}: ${v}`, margin + (col * 45), y + (row * 6), 9);
       if (col === 3 || idx === dimList.length - 1) {
         // 行が終わる際にyを更新（最後の行の計算用）
         if (idx === dimList.length - 1) y += (row * 6) + 10;
@@ -1588,21 +1590,14 @@ doc.save(fileName);
 
       {showMissingRequired.length > 0 && (
         <div className="fixed top-[72px] left-0 right-0 z-40 bg-amber-500 text-slate-900 shadow-lg border-b border-amber-600">
-          <div className="max-w-7xl mx-auto px-4 py-4 flex items-start gap-3">
-            <AlertTriangle size={22} className="flex-shrink-0 mt-0.5 text-amber-700" />
-            <div>
-              <p className="font-black text-sm uppercase tracking-wide mb-2">以下の項目が未選択です。選択してから再度「確定表示」を押してください。</p>
-              <ul className="list-disc list-inside text-sm font-bold space-y-1 flex flex-wrap gap-x-6 gap-y-1">
-                {showMissingRequired.map((label, i) => (
-                  <li key={i}>{label}</li>
-                ))}
-              </ul>
-            </div>
+          <div className="max-w-7xl mx-auto px-4 py-3 flex items-center gap-3">
+            <AlertTriangle size={20} className="flex-shrink-0 text-amber-700" />
+            <p className="font-black text-sm uppercase tracking-wide">未記入があります</p>
           </div>
         </div>
       )}
 
-      <div className={showMissingRequired.length > 0 ? 'h-[140px]' : 'h-[92px]'} />
+      <div className={showMissingRequired.length > 0 ? 'h-[52px]' : 'h-[92px]'} />
 
       <main className="max-w-7xl mx-auto p-4 md:p-8">
         {!isConfirmed ? (
@@ -1629,12 +1624,14 @@ doc.save(fileName);
                     <Package size={24} className="text-blue-600" /> 2. 仕様パーツ構成
                   </h2>
 
-                  {selectedSeries !== 'NEO' && <SelectionGroup title="基本構成モデル" items={currentCatalog.baseModels} selectionKey="baseModel" />}
-                  {(selectedSeries === 'MX_MR' || selectedSeries === 'NEO') && <SelectionGroup title="パッケージ" items={selectedSeries === 'NEO' ? NEO_PACKAGE_OPTIONS : (selections.baseModel?.id === 'mr_base' ? MR_PACKAGE_OPTIONS : MX_PACKAGE_OPTIONS)} selectionKey="package" />}
+                  {selectedSeries !== 'NEO' && <SelectionGroup title="基本構成モデル" items={currentCatalog.baseModels} selectionKey="baseModel" isInvalid={showMissingRequired.includes('基本構成モデル')} selections={selections} setSelections={setSelections} />}
+                  {(selectedSeries === 'MX_MR' || selectedSeries === 'NEO') && <SelectionGroup title="パッケージ" items={selectedSeries === 'NEO' ? NEO_PACKAGE_OPTIONS : (selections.baseModel?.id === 'mr_base' ? MR_PACKAGE_OPTIONS : MX_PACKAGE_OPTIONS)} selectionKey="package" isInvalid={showMissingRequired.includes('パッケージ')} selections={selections} setSelections={setSelections} />}
 
-                  {selectedSeries === 'GWE' && (
-                    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-6">
-                      <div className="bg-slate-50 px-5 py-4 border-b border-slate-200 flex items-center justify-between">
+                  {selectedSeries === 'GWE' && (() => {
+                    const gweBlockInvalid = showMissingRequired.includes('電動ユニット（GW-E）');
+                    return (
+                    <div className={`rounded-2xl shadow-sm overflow-hidden mb-6 border-2 ${gweBlockInvalid ? 'border-red-500 bg-red-50' : 'border border-slate-200 bg-white'}`}>
+                      <div className={`px-5 py-4 border-b flex items-center justify-between ${gweBlockInvalid ? 'border-red-200 bg-red-100' : 'border-slate-200 bg-slate-50'}`}>
                         <h3 className="font-bold text-slate-800 tracking-widest uppercase text-xs">電動ユニット（GW-E）</h3>
                       </div>
                       <div className="p-6">
@@ -1649,8 +1646,10 @@ doc.save(fileName);
                         </div>
                         {gweUnitDetail.unitId && (
                           <div className="bg-slate-50 border rounded-2xl p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {GWE_UNIT_DETAIL_MASTER[gweUnitDetail.unitId].groups.map(g => (
-                              <div key={g.key} className="bg-white border rounded-2xl p-4">
+                            {GWE_UNIT_DETAIL_MASTER[gweUnitDetail.unitId].groups.map(g => {
+                              const gweGroupInvalid = showMissingRequired.includes(`電動ユニット - ${g.label}`);
+                              return (
+                              <div key={g.key} className={`rounded-2xl p-4 border-2 ${gweGroupInvalid ? 'border-red-500 bg-red-50' : 'border border-slate-200 bg-white'}`}>
                                 <label className="block text-[10px] font-black text-slate-400 uppercase mb-2">{g.label}</label>
                                 <select className="w-full bg-slate-50 border-2 rounded-xl p-3 text-sm font-black outline-none" value={gweUnitDetail.parts?.[g.key]?.id || ''} onChange={e => {
                                   const choice = g.choices.find(c => c.id === e.target.value);
@@ -1660,12 +1659,12 @@ doc.save(fileName);
                                   {g.choices.map(c => <option key={c.id} value={c.id}>{c.no} {c.name} {c.priceKey ? `(+¥${getPrice(c.priceKey).toLocaleString()})` : ''}</option>)}
                                 </select>
                               </div>
-                            ))}
+                            ); })}
                           </div>
                         )}
                       </div>
                     </div>
-                  )}
+                  ); })()}
 
                   {currentCatalog.frameOptions && (
                     <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-6">
@@ -1677,8 +1676,11 @@ doc.save(fileName);
                         </div>
                       </div>
                       <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-8">
-                        {Object.keys(currentCatalog.frameOptions).map(cat => (
-                          <div key={cat} className="space-y-3">
+                        {Object.keys(currentCatalog.frameOptions).map(cat => {
+                          const frameCatLabel = cat === 'type' ? 'フレームタイプ' : cat === 'shape' ? (selectedSeries === 'NEO' ? 'フレーム前方形状' : '前方形状') : cat === 'length' ? '長さ' : cat === 'height' ? '高さ' : cat === 'size' ? 'サイズ' : 'フロントパイプ';
+                          const frameCatInvalid = showMissingRequired.includes(frameCatLabel);
+                          return (
+                          <div key={cat} className={`space-y-3 rounded-xl p-3 border-2 ${frameCatInvalid ? 'border-red-500 bg-red-50' : 'border-transparent'}`}>
                             <label className="block text-[10px] font-black text-slate-400 uppercase mb-1 tracking-widest">
                               {cat === 'type' ? 'フレームタイプ' : cat === 'shape' ? (selectedSeries === 'NEO' ? 'フレーム前方形状' : '前方形状') : cat === 'length' ? '長さ' : cat === 'height' ? '高さ' : cat === 'size' ? 'サイズ' : 'フロントパイプ'}
                             </label>
@@ -1696,18 +1698,23 @@ doc.save(fileName);
                               })}
                             </div>
                           </div>
-                        ))}
+                        ); })}
                       </div>
                     </div>
                   )}
 
-                  <SelectionGroup title="車軸タイプ (L8連動)" items={currentCatalog.axleTypes} selectionKey="axleType" dynamicNameFn={getAxleDisplayName} />
-                  <SelectionGroup title="キャスターフォーク" items={currentCatalog.casterForks} selectionKey="casterFork" />
+                  <SelectionGroup title="車軸タイプ (L8連動)" items={currentCatalog.axleTypes} selectionKey="axleType" dynamicNameFn={getAxleDisplayName} isInvalid={showMissingRequired.includes('車軸タイプ')} selections={selections} setSelections={setSelections} />
+                  <SelectionGroup title="キャスターフォーク" items={currentCatalog.casterForks} selectionKey="casterFork" isInvalid={showMissingRequired.includes('キャスターフォーク')} selections={selections} setSelections={setSelections} />
                   
-                  <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-6">
-                    <div className="bg-slate-50 px-5 py-3 border-b border-slate-200 font-bold text-slate-800 tracking-widest uppercase text-xs">キャスターホイール</div>
+                  {(() => {
+                    const casterTypeInvalid = showMissingRequired.includes('キャスターホイール（種類）');
+                    const casterSizeInvalid = showMissingRequired.includes('キャスターホイール（サイズ）');
+                    const casterBlockInvalid = casterTypeInvalid || casterSizeInvalid;
+                    return (
+                  <div className={`rounded-2xl shadow-sm overflow-hidden mb-6 border-2 ${casterBlockInvalid ? 'border-red-500 bg-red-50' : 'border border-slate-200 bg-white'}`}>
+                    <div className={`px-5 py-3 border-b font-bold text-slate-800 tracking-widest uppercase text-xs ${casterBlockInvalid ? 'border-red-200 bg-red-100' : 'border-slate-200 bg-slate-50'}`}>キャスターホイール</div>
                     <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-8">
-                      <div>
+                      <div className={casterTypeInvalid ? 'rounded-xl p-3 border-2 border-red-500 bg-red-50' : ''}>
                         <label className="block text-[10px] font-black text-slate-400 uppercase mb-2">A. 種類</label>
                         <div className="grid grid-cols-1 gap-2">
                           {seriesCasterData.filter(cw => currentCatalog.hasCushionCaster || cw.type !== 'クッションキャスター').map(cw => (
@@ -1717,7 +1724,7 @@ doc.save(fileName);
                           ))}
                         </div>
                       </div>
-                      <div>
+                      <div className={casterSizeInvalid ? 'rounded-xl p-3 border-2 border-red-500 bg-red-50' : ''}>
                         <label className="block text-[10px] font-black text-slate-400 uppercase mb-2">B. サイズ</label>
                         <select disabled={!casterWheelType} className="w-full bg-slate-50 border-2 rounded-xl p-4 text-sm font-black outline-none disabled:opacity-20 transition-all" value={casterWheelSize?.no || ''} onChange={e => setCasterWheelSize(casterWheelType?.sizes?.find(s => s.no === e.target.value))}>
                           <option value="">-- 選択 --</option>
@@ -1726,17 +1733,23 @@ doc.save(fileName);
                       </div>
                     </div>
                   </div>
+                  ); })()}
 
-                  {currentCatalog.footrests && <SelectionGroup title="フットレスト" items={currentCatalog.footrests} selectionKey="footrest" />}
-                  {currentCatalog.brakes && <SelectionGroup title="ブレーキシステム" items={currentCatalog.brakes} selectionKey="brake" />}
+                  {currentCatalog.footrests && <SelectionGroup title="フットレスト" items={currentCatalog.footrests} selectionKey="footrest" isInvalid={showMissingRequired.includes('フットレスト')} selections={selections} setSelections={setSelections} />}
+                  {currentCatalog.brakes && <SelectionGroup title="ブレーキシステム" items={currentCatalog.brakes} selectionKey="brake" isInvalid={showMissingRequired.includes('ブレーキシステム')} selections={selections} setSelections={setSelections} />}
 
-                  {selectedSeries !== 'GWE' && (
-                    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-6">
-                      <div className="bg-slate-50 px-5 py-3 border-b border-slate-200 font-bold text-slate-800 tracking-widest uppercase text-xs">メインホイール構成</div>
+                  {selectedSeries !== 'GWE' && (() => {
+                    const wheelTypeInvalid = showMissingRequired.includes('メインホイール（種類）');
+                    const wheelSizeInvalid = showMissingRequired.includes('メインホイール（サイズ）');
+                    const tireInvalid = showMissingRequired.includes('タイヤカラー');
+                    const mainWheelBlockInvalid = wheelTypeInvalid || wheelSizeInvalid || tireInvalid;
+                    return (
+                    <div className={`rounded-2xl shadow-sm overflow-hidden mb-6 border-2 ${mainWheelBlockInvalid ? 'border-red-500 bg-red-50' : 'border border-slate-200 bg-white'}`}>
+                      <div className={`px-5 py-3 border-b font-bold text-slate-800 tracking-widest uppercase text-xs ${mainWheelBlockInvalid ? 'border-red-200 bg-red-100' : 'border-slate-200 bg-slate-50'}`}>メインホイール構成</div>
                       <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-8">
                         <div>
                           {!(selectedSeries === 'MX_MR' || selectedSeries === 'NEO') && (
-                            <div className="mb-6">
+                            <div className={`mb-6 ${wheelTypeInvalid ? 'rounded-xl p-3 border-2 border-red-500 bg-red-50' : ''}`}>
                               <label className="block text-[10px] font-black text-slate-400 uppercase mb-2">A. 種類</label>
                               <div className="grid grid-cols-1 gap-2">
                                 {(currentCatalog.wheels || []).map(w => (
@@ -1747,14 +1760,14 @@ doc.save(fileName);
                               </div>
                             </div>
                           )}
-                          <div className="mb-6">
+                          <div className={`mb-6 ${wheelSizeInvalid ? 'rounded-xl p-3 border-2 border-red-500 bg-red-50' : ''}`}>
                             <label className="block text-[10px] font-black text-slate-400 uppercase mb-2">B. サイズ</label>
                             <select className="w-full bg-slate-50 border-2 rounded-xl p-4 text-sm font-black outline-none transition-all" value={selections.wheelSize} onChange={e => setSelections({...selections, wheelSize: e.target.value})}>
                               { (selectedSeries === 'LX_LR' || selectedSeries === 'FX_FR') ? ['24インチ'].map(v => <option key={v} value={v}>{v}</option>) : (selectedSeries === 'MX_MR' || selectedSeries === 'NEO') ? ['22インチ','23インチ','24インチ','25インチ'].map(v => <option key={v} value={v}>{v}</option>) : (WHEEL_SIZE_RULES?.[selections.wheel?.id] || ['--']).map(v => <option key={v} value={v} disabled={currentCatalog.blockSmallWheels && (v==='22インチ' || v==='23インチ')}>{v}</option>) }
                             </select>
                           </div>
                           {currentCatalog?.tireBrand && (
-                            <div className="mb-6">
+                            <div className={`mb-6 ${tireInvalid ? 'rounded-xl p-3 border-2 border-red-500 bg-red-50' : ''}`}>
                               <label className="block text-[10px] font-black text-slate-400 uppercase mb-2">C. タイヤカラー ({currentCatalog.tireBrand})</label>
                               <div className="grid grid-cols-2 gap-2">
                                 {availableTires.map(t => (
@@ -1767,10 +1780,10 @@ doc.save(fileName);
                             </div>
                           )}
                         </div>
-                        <SelectionGroup title="ハンドリム" items={HANDRIM_OPTIONS} selectionKey="handrim" />
+                        <SelectionGroup title="ハンドリム" items={HANDRIM_OPTIONS} selectionKey="handrim" isInvalid={showMissingRequired.includes('ハンドリム')} selections={selections} setSelections={setSelections} />
                       </div>
                     </div>
-                  )}
+                  ); })()}
 
                   <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-8">
                     <div className="bg-slate-50 px-5 py-4 border-b border-slate-200 flex items-center gap-2">
@@ -1880,7 +1893,7 @@ doc.save(fileName);
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                       {(selectedSeries === 'NEOplus' || selectedSeries === 'NEO') && (
-                        <div className="space-y-4 bg-slate-50 p-5 rounded-3xl border border-blue-100/50 shadow-inner">
+                        <div className={`space-y-4 p-5 rounded-3xl border-2 shadow-inner ${showMissingRequired.includes('オフセット') ? 'border-red-500 bg-red-50' : 'bg-slate-50 border border-blue-100/50'}`}>
                           <label className="block text-[10px] font-black text-blue-600 uppercase mb-1 tracking-widest italic">オフセット</label>
                           <select className="w-full bg-white border border-slate-200 rounded-xl p-3 text-sm font-bold outline-none" value={dimensions.offset} onChange={e => {
                             const val = e.target.value;
@@ -1893,12 +1906,12 @@ doc.save(fileName);
                               return next;
                             });
                           }}>
-                            {(currentCatalog.dimensionRules?.offset?.length || 0) > 1 && <option value="">選択</option>}
-                            {currentCatalog.dimensionRules?.offset?.map(v => <option key={v} value={v}>{v}mm</option>)}
+                            <option value="">選択</option>
+                            {(currentCatalog.dimensionRules?.offset || []).map(v => <option key={v} value={v}>{v}mm</option>)}
                           </select>
                         </div>
                       )}
-                      <div className="space-y-2 bg-slate-50 p-5 rounded-3xl border border-slate-200/50 shadow-inner">
+                      <div className={`space-y-2 p-5 rounded-3xl border-2 shadow-inner ${(showMissingRequired.includes('H4 バック高（タイプ）') || showMissingRequired.includes('H4 バック高（値）')) ? 'border-red-500 bg-red-50' : 'bg-slate-50 border border-slate-200/50'}`}>
                         <label className="block text-[10px] font-black text-slate-400 uppercase mb-1 tracking-widest italic">H4 バック高</label>
                         <select className="w-full bg-white border rounded-xl p-2 text-xs font-bold outline-none mb-2" value={dimensions.h4Type} onChange={e => setDimensions(d => ({...d, h4Type: e.target.value}))}>
                           {Object.keys(currentCatalog.dimensionRules?.h4 || {}).length > 1 && <option value="">選択</option>}
@@ -1909,7 +1922,7 @@ doc.save(fileName);
                           {(currentCatalog.dimensionRules?.h4?.[dimensions.h4Type] || []).map(v => <option key={v} value={v}>{v}mm</option>)}
                         </select>
                       </div>
-                      <div className="space-y-2 bg-slate-50 p-5 rounded-3xl border border-slate-200/50 shadow-inner">
+                      <div className={`space-y-2 p-5 rounded-3xl border-2 shadow-inner ${(showMissingRequired.includes('車軸/ﾚﾊﾞｰ長 (L8)') || showMissingRequired.includes('ﾚﾊﾞｰ長')) ? 'border-red-500 bg-red-50' : 'bg-slate-50 border border-slate-200/50'}`}>
                         <label className="block text-[10px] font-black text-slate-400 uppercase mb-1 tracking-widest italic">{['LX_LR', 'FX_FR'].includes(selectedSeries) ? 'ﾚﾊﾞｰ長' : '車軸 / ﾚﾊﾞｰ長'}</label>
                         {!['LX_LR', 'FX_FR'].includes(selectedSeries) && (
                           <select className="w-full bg-white border rounded-xl p-2 text-xs font-bold outline-none mb-2" value={dimensions.l8} onChange={e => setDimensions(d => ({...d, l8: e.target.value}))}>
@@ -1929,15 +1942,17 @@ doc.save(fileName);
                           const isSbLocked = (k === 'sb') && lockSbSeries.has(selectedSeries) && !!derivedBackAngleValue;
                           let opts = [];
                           if (k === 'cm') opts = camberOptions;
-                          else if (k === 'sb') opts = isSbLocked ? [derivedBackAngleValue] : (currentCatalog?.dimensionRules?.sbMap ? currentCatalog.dimensionRules.sbMap[dimensions.offset] : (currentCatalog?.dimensionRules?.sb || []));
+                          else if (k === 'sb') opts = isSbLocked ? [derivedBackAngleValue] : (currentCatalog?.dimensionRules?.sbMap ? (currentCatalog.dimensionRules.sbMap[dimensions.offset] || []) : (currentCatalog?.dimensionRules?.sb || []));
                           else if (k === 'l1') {
                             if (selectedSeries === 'MX_MR' && frameParts.size?.label) {
                               opts = frameParts.size.label === 'Sサイズ' ? ['330'] : ['350', '380', '420'];
-                            } else opts = currentCatalog?.dimensionRules?.l1Map ? currentCatalog.dimensionRules.l1Map[dimensions.offset] : (currentCatalog?.dimensionRules?.l1 || []);
+                            } else opts = currentCatalog?.dimensionRules?.l1Map ? (currentCatalog.dimensionRules.l1Map[dimensions.offset] || []) : (currentCatalog?.dimensionRules?.l1 || []);
                           } else opts = currentCatalog?.dimensionRules?.[k] || [];
+                          const dimLabel = { w1: '座幅(W1)', l1: '座奥行(L1)', sb: 'バックレスト角(SB)', w2: 'ハンドリム間隔(W2)', cm: 'キャンバー' }[k];
+                          const dimInvalid = showMissingRequired.includes(dimLabel);
                           return (
-                            <div key={k} className="w-20 text-center">
-                              <span className="text-[8px] font-black text-slate-400 block mb-1 uppercase tracking-widest">{k.toUpperCase()}</span>
+                            <div key={k} className={`w-20 text-center ${dimInvalid ? 'rounded-xl p-2 border-2 border-red-500 bg-red-50' : ''}`}>
+                              <span className="text-[8px] font-black text-slate-400 block mb-1 uppercase tracking-widest">{dimLabel}</span>
                               <select className="w-full bg-white border rounded-xl p-2 text-xs font-black outline-none shadow-sm text-center" value={dimensions[k]} onChange={e => setDimensions(d => ({ ...d, [k]: e.target.value }))} disabled={(k === 'cm' && selections.axleType?.id === 'axle_b') || (k === 'sb' && isSbLocked) || (k === 'l1' && selectedSeries === 'MX_MR' && frameParts.size?.label === 'Sサイズ')}>
                                 {opts.length > 1 && <option value="">選択</option>}
                                 {opts.map(v => <option key={v} value={v}>{v}{k === 'sb' ? '°' : ''}</option>)}
@@ -1952,7 +1967,7 @@ doc.save(fileName);
                   <div className="bg-white rounded-[2rem] shadow-sm border border-slate-200 p-8 mb-6 relative font-bold">
                     <h3 className="text-xl font-black mb-8 flex items-center gap-3 tracking-widest uppercase"><Settings size={24} className="text-blue-600" /> 4. 専用オプション</h3>
                     {Object.values(armrestConfig).some(v => v) && (
-                      <div className="bg-slate-50 border rounded-2xl p-5 mb-6 grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <div className={`border-2 rounded-2xl p-5 mb-6 grid grid-cols-1 md:grid-cols-3 gap-3 ${showMissingRequired.includes('アームレスト（高低・高さ）') ? 'border-red-500 bg-red-50' : 'bg-slate-50 border border-slate-200'}`}>
                         <select className="bg-white border rounded-xl p-3 text-sm font-bold outline-none" value={armrestSel.kind} onChange={e => setArmrestSel({kind: e.target.value, lh: '', ah: ''})}>
                           {!(selectedSeries === 'NEO' || selectedSeries === 'GWE' || (selectedSeries === 'MX_MR' && selections.baseModel?.id === 'mx_base')) && <option value="">アームレストなし</option>}
                           {armrestConfig.arm && <option value="arm">アームレスト {(selectedSeries === 'NEO' || selectedSeries === 'GWE' || (selectedSeries === 'MX_MR' && selections.baseModel?.id === 'mx_base')) ? '(標準 込)' : '(+¥22,000)'}</option>}
@@ -2106,7 +2121,7 @@ doc.save(fileName);
                   <div className="space-y-6">
                     <div className="flex justify-between items-center border-b pb-3"><span className="text-[10px] text-slate-400 font-black uppercase tracking-widest">ホイール</span><span className="font-black text-lg text-blue-600">{selections.wheelSize}</span></div>
                     {Object.entries(dimensions).map(([k,v]) => (
-                      <div key={k} className="flex justify-between items-center border-b pb-3"><span className="text-[10px] text-slate-400 font-black uppercase tracking-widest">{k}</span><span className="font-black text-lg text-slate-900">{v || '---'} <span className="text-[10px] ml-0.5 text-slate-400 italic font-normal">{isNaN(v)?'':(k==='sb'?'°':'mm')}</span></span></div>
+                      <div key={k} className="flex justify-between items-center border-b pb-3"><span className="text-[10px] text-slate-400 font-black uppercase tracking-widest">{DIMENSION_LABELS[k] || k}</span><span className="font-black text-lg text-slate-900">{v || '---'} <span className="text-[10px] ml-0.5 text-slate-400 italic font-normal">{isNaN(v)?'':(k==='sb'?'°':'mm')}</span></span></div>
                     ))}
                     {derivedBackAngle && <div className="flex justify-between items-center border-b pb-3"><span className="text-[10px] text-slate-400 font-black uppercase tracking-widest">背角度</span><span className="font-black text-lg text-slate-900">{derivedBackAngle ?? '—'}</span></div>}
                   </div>
