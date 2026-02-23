@@ -1566,29 +1566,40 @@ doc.save(fileName);
               <p className="text-[9px] opacity-40 uppercase tracking-[0.3em] mt-1 font-bold">2025 v5.9 Stable</p>
             </div>
           </div>
-          <div className="flex items-center gap-6">
-            <div className="flex flex-col text-right">
+          <div className="flex items-center gap-6 min-w-0 flex-1 justify-end">
+            <div className="flex flex-col text-right min-w-0">
               <span className="text-[10px] font-bold text-blue-400 uppercase mb-1 leading-none">Subtotal</span>
-              <span className="text-2xl font-black font-mono tracking-tighter text-blue-400 leading-none">¥{totalAmount.toLocaleString()}</span>
+              <span className="text-xl md:text-2xl font-black font-mono tracking-tighter text-blue-400 leading-none truncate">¥{totalAmount.toLocaleString()}</span>
             </div>
-            <button
-              disabled={!selectedSeries}
-              onClick={() => {
-                if (missingRequiredItems.length > 0) {
-                  setShowMissingRequired(missingRequiredItems);
-                  return;
-                }
-                setShowMissingRequired([]);
-                setShowTotalBreakdown(true);
-              }}
-              className="bg-blue-600 px-8 py-3 rounded-xl font-black text-xs hover:bg-blue-700 disabled:opacity-20 flex items-center gap-2 shadow-lg shadow-blue-500/20"
-            >確定表示 <ChevronRight size={16} /></button>
           </div>
         </div>
       </nav>
 
+      {/* 確認ボタン: 右下に常時固定（スマホで押しやすく「確認」のみ表示） */}
+      {!isConfirmed && (
+        <div
+          className="fixed bottom-0 right-0 z-50 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] pr-[max(1rem,env(safe-area-inset-right))]"
+          aria-label="確認表示"
+        >
+          <button
+            disabled={!selectedSeries}
+            onClick={() => {
+              if (missingRequiredItems.length > 0) {
+                setShowMissingRequired(missingRequiredItems);
+                return;
+              }
+              setShowMissingRequired([]);
+              setShowTotalBreakdown(true);
+            }}
+            className="bg-green-600 text-white px-6 py-4 rounded-2xl font-black text-base shadow-xl shadow-green-500/30 hover:bg-green-700 disabled:opacity-30 disabled:cursor-not-allowed min-w-[88px]"
+          >
+            確認
+          </button>
+        </div>
+      )}
+
       {showMissingRequired.length > 0 && (
-        <div className="fixed top-[72px] left-0 right-0 z-40 bg-amber-500 text-slate-900 shadow-lg border-b border-amber-600">
+        <div className="fixed top-0 left-0 right-0 z-[60] bg-amber-500 text-slate-900 shadow-lg border-b-2 border-amber-600 pt-[env(safe-area-inset-top,0px)]">
           <div className="max-w-7xl mx-auto px-4 py-3 flex items-center gap-3">
             <AlertTriangle size={20} className="flex-shrink-0 text-amber-700" />
             <p className="font-black text-sm uppercase tracking-wide">未記入があります</p>
@@ -1596,7 +1607,7 @@ doc.save(fileName);
         </div>
       )}
 
-      <div className={showMissingRequired.length > 0 ? 'h-[52px]' : 'h-[92px]'} />
+      <div className={showMissingRequired.length > 0 ? 'h-14 min-h-[56px]' : 'h-[92px]'} />
 
       <main className="max-w-7xl mx-auto p-4 md:p-8">
         {!isConfirmed ? (
