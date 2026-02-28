@@ -974,7 +974,7 @@ const App = () => {
     });
   }, [dimensionOptsMap]);
   // 確定表示前にチェックする必須項目（オプション・アクセサリー・選択肢1つの寸法は除く）
-  const DIMENSION_LABELS = { offset: 'オフセット', h4Type: 'H4 バック高（タイプ）', h4Val: 'H4 バック高（値）', l8: '車軸 (L8)', lever: 'ブレーキレバー長', w1: '座幅(W1)', l1: '座奥行(L1)', sb: 'バックレスト角(SB)', w2: 'ハンドリム間隔(W2)', cm: 'キャンバー' };
+  const DIMENSION_LABELS = { offset: 'オフセット', h4Type: 'H4 バック高（タイプ）', h4Val: 'H4 バック高（値）', l8: '車軸前後位置 (L8)', lever: 'ブレーキレバー長', w1: '座幅(W1)', l1: '座奥行(L1)', sb: 'バックレスト角(SB)', w2: 'ハンドリム間隔(W2)', cm: 'キャンバー' };
   const missingRequiredItems = useMemo(() => {
     const missing = [];
     if (!selectedSeries || !currentCatalog) return missing;
@@ -1354,7 +1354,7 @@ add('ハンドリム', handrimResolved);
     addText("02. 指定寸法一覧", margin, y, 11);
     y += 8;
     const dimList = Object.entries(dimensions);
-    const dimLabels = { offset: 'オフセット', h4Type: 'H4 バック高（タイプ）', h4Val: 'H4 バック高（値）', l8: '車軸/ﾚﾊﾞｰ長 (L8)', lever: 'ﾚﾊﾞｰ長', w1: '座幅(W1)', l1: '座奥行(L1)', sb: 'バックレスト角(SB)', w2: 'ハンドリム間隔(W2)', cm: 'キャンバー' };
+    const dimLabels = { offset: 'オフセット', h4Type: 'H4 バック高（タイプ）', h4Val: 'H4 バック高（値）', l8: '車軸前後位置 (L8)', lever: 'ブレーキレバー長', w1: '座幅(W1)', l1: '座奥行(L1)', sb: 'バックレスト角(SB)', w2: 'ハンドリム間隔(W2)', cm: 'キャンバー' };
     dimList.forEach(([k, v], idx) => {
       const col = idx % 4;
       const row = Math.floor(idx / 4);
@@ -1471,7 +1471,7 @@ add('ハンドリム', handrimResolved);
     rows.push(["ホイールサイズ", selections.wheelSize || "", ""]);
     const DIMENSION_LABELS_CSV = {
       offset: 'オフセット', h4Type: 'H4 バック高（タイプ）', h4Val: 'H4 バック高（値）',
-      l8: '車軸/レバー長 (L8)', lever: 'レバー長', w1: '座幅(W1)',
+      l8: '車軸前後位置 (L8)', lever: 'ブレーキレバー長', w1: '座幅(W1)',
       l1: '座奥行(L1)', sb: 'バックレスト角(SB)', w2: 'ハンドリム間隔(W2)', cm: 'キャンバー'
     };
     Object.entries(dimensions).forEach(([k, v]) => {
@@ -2062,24 +2062,32 @@ add('ハンドリム', handrimResolved);
                           {(currentCatalog.dimensionRules?.h4?.[dimensions.h4Type] || []).map(v => <option key={v} value={v}>{v}mm</option>)}
                         </select>
                       </div>
-                      <div className={`space-y-2 p-5 rounded-3xl border-2 shadow-inner ${(showMissingRequired.includes('車軸/ﾚﾊﾞｰ長 (L8)') || showMissingRequired.includes('ﾚﾊﾞｰ長')) ? 'border-red-500 bg-red-50' : 'bg-slate-50 border border-slate-200/50'}`}>
-                        <label className="block text-[10px] font-black text-slate-400 uppercase mb-1 tracking-widest italic">{['LX_LR', 'FX_FR'].includes(selectedSeries) ? 'ﾚﾊﾞｰ長' : '車軸 / ﾚﾊﾞｰ長'}</label>
+                      <div className={`space-y-4 p-5 rounded-3xl border-2 shadow-inner ${(showMissingRequired.includes(DIMENSION_LABELS.l8) || showMissingRequired.includes(DIMENSION_LABELS.lever)) ? 'border-red-500 bg-red-50' : 'bg-slate-50 border border-slate-200/50'}`}>
                         {!['LX_LR', 'FX_FR'].includes(selectedSeries) && (
-                          <select className="w-full bg-white border rounded-xl p-2 text-xs font-bold outline-none mb-2" value={dimensions.l8} onChange={e => setDimensions(d => ({...d, l8: e.target.value}))}>
-                            {l8Options.length > 1 && <option value="">選択</option>}
-                            {l8Options.map(v => <option key={v} value={v}>{v}mm</option>)}
-                          </select>
+                          <div className="space-y-1">
+                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest italic">車軸前後位置 (L8)</label>
+                            <select className="w-full bg-white border rounded-xl p-2 text-xs font-bold outline-none" value={dimensions.l8} onChange={e => setDimensions(d => ({...d, l8: e.target.value}))}>
+                              {l8Options.length > 1 && <option value="">選択</option>}
+                              {l8Options.map(v => <option key={v} value={v}>{v}mm</option>)}
+                            </select>
+                          </div>
                         )}
                         {isHorizontalBrake ? (
-                          <div className="w-full bg-amber-50 border border-amber-200 rounded-xl p-2 text-xs text-amber-600 font-bold text-center flex items-center justify-center gap-1">
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                            ホリゾンタル選択時はレバー長不要
+                          <div className="space-y-1">
+                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest italic">ブレーキレバー長</label>
+                            <div className="w-full bg-amber-50 border border-amber-200 rounded-xl p-2 text-xs text-amber-600 font-bold text-center flex items-center justify-center gap-1">
+                              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                              ホリゾンタル選択時は不要
+                            </div>
                           </div>
                         ) : (currentCatalog?.dimensionRules?.lever || []).length > 0 ? (
-                          <select className="w-full bg-white border rounded-xl p-2 text-xs font-bold outline-none" value={dimensions.lever} onChange={e => setDimensions(d => ({...d, lever: e.target.value}))}>
-                            {(currentCatalog.dimensionRules?.lever || []).length > 1 && <option value="">選択</option>}
-                            {(currentCatalog.dimensionRules?.lever || []).map(v => <option key={v} value={v}>{v}mm(レバー長)</option>)}
-                          </select>
+                          <div className="space-y-1">
+                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest italic">ブレーキレバー長</label>
+                            <select className="w-full bg-white border rounded-xl p-2 text-xs font-bold outline-none" value={dimensions.lever} onChange={e => setDimensions(d => ({...d, lever: e.target.value}))}>
+                              {(currentCatalog.dimensionRules?.lever || []).length > 1 && <option value="">選択</option>}
+                              {(currentCatalog.dimensionRules?.lever || []).map(v => <option key={v} value={v}>{v}mm</option>)}
+                            </select>
+                          </div>
                         ) : null}
                       </div>
                       <div className="bg-blue-50/40 p-5 rounded-[2rem] border border-blue-100 col-span-full flex flex-wrap gap-6 justify-center">
