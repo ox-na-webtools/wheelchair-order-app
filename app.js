@@ -372,6 +372,7 @@ const CATALOG = {
       ] 
     },
     footrests: MX_NEO_FOOTRESTS,
+    brakes: [{ id: 'br_h', name: 'ホリゾンタル', no: '', price: 0 }, { id: 'br_o', name: 'ダイヤル上付け', no: '', price: 0 }, { id: 'br_u', name: 'ダイヤル下付け', no: '', price: 0 }],
     options: [
       { id: 'opt_arm_mr', name: 'アームレスト (MR用)', no: 'No.1', price: 22000, ahLow:[250, 260, 270], ahHigh:[270, 280, 290, 300, 310] },
       { id: 'opt_flip', name: 'はね上げ式アームレスト', no: 'No.1', price: 6000, 
@@ -419,6 +420,7 @@ const CATALOG = {
       ]
     },
     footrests: MX_NEO_FOOTRESTS,
+    brakes: [{ id: 'br_h', name: 'ホリゾンタル', no: '', price: 0 }, { id: 'br_o', name: 'ダイヤル上付け', no: '', price: 0 }, { id: 'br_u', name: 'ダイヤル下付け', no: '', price: 0 }],
     options: [
       { id: 'opt_arm', name: 'アームレスト', no: '標準', price: 0,
         ahLow: [260, 270, 280, 290, 300, 310],
@@ -1032,10 +1034,30 @@ const App = () => {
     }
     return item.name;
   }, [selectedSeries, frameParts.height]);
+  // MX/MR/NEO: ハンドリムはアルマイト標準0円・ビニール+5000円、番号なし
+  const handrimOptionsForDisplay = useMemo(() => {
+    if (selectedSeries === 'MX_MR' || selectedSeries === 'NEO') {
+      return HANDRIM_OPTIONS.map(hr => ({
+        ...hr,
+        no: '',
+        price: hr.id === 'hr_vinyl' ? 5000 : 0,
+        priceKey: undefined
+      }));
+    }
+    return HANDRIM_OPTIONS;
+  }, [selectedSeries]);
+  const handrimResolved = useMemo(() => {
+    if (!selections.handrim) return null;
+    if (selectedSeries === 'MX_MR' || selectedSeries === 'NEO') {
+      const price = selections.handrim.id === 'hr_vinyl' ? 5000 : 0;
+      return { ...selections.handrim, no: '', price, priceKey: undefined };
+    }
+    return selections.handrim;
+  }, [selections.handrim, selectedSeries]);
   const totalAmount = useMemo(() => {
     let sum = 0;
     // 注意: selections.tire はタイヤ色選択のみで現状価格=0。有料タイヤ追加時は list に含めること
-    const list = [selections.baseModel, selections.package, selections.axleType, selections.casterFork, selections.brake, selections.footrest, selections.wheel, selections.handrim, casterWheelType];
+    const list = [selections.baseModel, selections.package, selections.axleType, selections.casterFork, selections.brake, selections.footrest, selections.wheel, handrimResolved, casterWheelType];
     list.forEach(item => { if (item) sum += itemPrice(item); });
     // 塗装価格計算
     const activePlan = PAINT_PLANS.find(p => p.id === paint.type);
@@ -1048,7 +1070,7 @@ const App = () => {
       Object.values(gweUnitDetail.parts || {}).forEach(p => { if (p) sum += itemPrice(p); });
     }
     return sum;
-  }, [selections, casterWheelType, selectedOptions, selectedAccessories, paint, selectedSeries, gweUnitDetail]);
+  }, [selections, handrimResolved, casterWheelType, selectedOptions, selectedAccessories, paint, selectedSeries, gweUnitDetail]);
   const totalLineItems = useMemo(() => {
     const items = [];
     const add = (label, item) => { 
@@ -1111,7 +1133,7 @@ if (selections.tire && currentCatalog?.tireBrand) {
   });
 }
 // ⑦ ハンドリム
-add('ハンドリム', selections.handrim);
+add('ハンドリム', handrimResolved);
     const activePlan = PAINT_PLANS.find(p => p.id === paint.type);
     if (activePlan) items.push({ label: '塗装プラン', name: activePlan.name, no: '塗装', price: getPrice(activePlan.priceKey) });
     let colorDisplay = paint.type === 'standard' ? (paint.standardColor || '選択') : '';
@@ -1126,7 +1148,7 @@ add('ハンドリム', selections.handrim);
       Object.entries(gweUnitDetail.parts || {}).forEach(([gk, p]) => { if (p) items.push({ label: 'ユニット詳細', name: p.name, no: p.no, price: itemPrice(p) }); });
     }
     return items;
-  }, [selections, frameParts, selectedSeries, casterWheelType, casterWheelSize, selectedOptions, selectedAccessories, paint, gweUnitDetail, currentCatalog, getWheelNo, getAxleDisplayName]);
+  }, [selections, handrimResolved, frameParts, selectedSeries, casterWheelType, casterWheelSize, selectedOptions, selectedAccessories, paint, gweUnitDetail, currentCatalog, getWheelNo, getAxleDisplayName]);
   const performSeriesReset = useCallback((key) => {
     const cat = CATALOG[key];
     setSelectedSeries(key);
@@ -1905,7 +1927,7 @@ add('ハンドリム', selections.handrim);
                             </div>
                           )}
                         </div>
-                        <SelectionGroup title="ハンドリム" items={HANDRIM_OPTIONS} selectionKey="handrim" isInvalid={showMissingRequired.includes('ハンドリム')} selections={selections} setSelections={setSelections} />
+                        <SelectionGroup title="ハンドリム" items={handrimOptionsForDisplay} selectionKey="handrim" isInvalid={showMissingRequired.includes('ハンドリム')} selections={selections} setSelections={setSelections} />
                       </div>
                     </div>
                   ); })()}
