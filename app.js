@@ -288,395 +288,6 @@ const GWE_UNIT_DETAIL_MASTER = {
     ],
   },
 };
-const COMMON_FOOTRESTS = [
-  { id: 'ft_pj_std', name: 'プレートジョイント std', no: 'No.11', price: 24000 },
-  { id: 'ft_pj_hi',  name: 'プレートジョイント hi',  no: 'No.12', price: 27000 },
-  { id: 'ft_ps_std', name: 'プレートセパレート std', no: 'No.31', price: 35000 },
-  { id: 'ft_ps_hi',  name: 'プレートセパレート hi',  no: 'No.32', price: 27000 },
-  { id: 'ft_pipe',   name: 'パイプジョイント std',   no: 'No.21', price: 24000 },
-];
-const MX_NEO_FOOTRESTS = [
-  { id: 'ft_pj_std', name: 'プレートジョイント std', no: 'No.11', priceKey: 'mx_neo.ft.pj_std' },
-  { id: 'ft_pj_hi',  name: 'プレートジョイント hi',  no: 'No.12', priceKey: 'mx_neo.ft.pj_hi' },
-  { id: 'ft_ps_std', name: 'プレートセパレート std', no: 'No.31', priceKey: 'mx_neo.ft.ps_std' },
-  { id: 'ft_ps_hi',  name: 'プレートセパレート hi',  no: 'No.32', priceKey: 'mx_neo.ft.ps_hi' },
-  { id: 'ft_pipe',   name: 'パイプジョイント std',   no: 'No.21', priceKey: 'mx_neo.ft.pipe' },
-];
-const CATALOG = {
-  ZZR: {
-    title: "ZZR シリーズ",
-    baseModels: [{ id: 'zzr', name: 'ZZR 本体ユニット', no: 'ZZR', price: 278000 }],
-    frameOptions: { shape: [{label: 'タイプI', no: 'No.1'}, {label: 'タイプII', no: 'No.2'}, {label: 'タイプIII', no: 'No.3'}], length: [{label: 'ショート', no: 'No.1'}, {label: 'ロング', no: 'No.2'}], pipe: [{label: 'ストレート', no: 'No.1'}, {label: 'シボリ', no: 'No.2'}] },
-    axleTypes: [{ id: 'axle_a', name: '車軸A (エキセン)', no: 'No.4', price: 0, l8: [70, 50, 30] }, { id: 'axle_b', name: '車軸B (サス)', no: 'No.5', price: 22000, l8: [60, 40] }],
-    casterForks: [{ id: 'cz2p', name: 'CZ2-Pro (カーボン)', no: 'No.23', price: 22000 }, { id: 'sfr2', name: 'SFR2 (サス付)', no: 'No.13', price: 39000 }],
-    brakes: [{ id: 'br_h', name: 'ホリゾンタル', no: 'No.11', price: 26000 }, { id: 'br_o', name: 'ダイヤル上付け', no: 'No.21', price: 26000 }, { id: 'br_u', name: 'ダイヤル下付け', no: 'No.22', price: 26000 }],
-    footrests: [{ id: 'ft_pj_std', name: 'プレートジョイント std', no: 'No.11', price: 24000 }, { id: 'ft_pipe', name: 'パイプジョイント std', no: 'No.21', price: 24000 }, { id: 'ft_ps_std', name: 'プレートセパレート std', no: 'No.31', price: 35000 }],
-    wheels: [{ id: 'ds3a', name: 'DS3 (A面)', no: 'No.251', price: 188000 }, { id: 'ds3z', name: 'DS3 (Z面)', no: 'No.252', price: 188000 }, { id: 'hhr3', name: 'HHR3', no: 'No.13', price: 120000 }, { id: 'al5', name: 'AL-5', no: 'No.75', price: 76000 }, { id: 'mx4', name: 'MX4', no: 'No.45', price: 36000 }],
-    options: [
-      { id: 'opt_arm_l', name: 'アームレスト ロー', no: 'No.11', price: 22000, ah:[240,250,260,270] }, 
-      { id: 'opt_arm_h', name: 'アームレスト ハイ', no: 'No.13', price: 22000, ah:[260,270,280,290,300,310] }, 
-      { id: 'opt_grip', name: 'グリップ', no: 'No.11', price: 6000 },
-      { id: 'opt_wheelie', name: 'ウィリーバー', no: 'No.1', price: 17000 }, 
-      { id: 'opt_sideguard', name: 'サイドガード', no: 'No.3', price: 20000 },
-      { id: 'opt_sideguard_fender', name: 'サイドガード＋簡易フェンダー', no: 'No.4', price: 25000 }, 
-      { id: 'opt_micro', name: 'リアマイクロホイール', no: 'No.2', price: 22000 }, 
-      { id: 'opt_l_flap', name: '軽量レザー (フラップ式)', no: 'No.1-3', price: 8000 }, 
-      { id: 'opt_l_zip', name: '軽量レザー (ファスナー式)', no: 'No.4', price: 5000 },
-      { id: 'opt_mag_cross', name: 'マグネシウムクロスメンバー', no: 'No.1', price: 30000 }
-    ],
-    dimensionRules: { h4: { 'ロー': [300, 310, 320, 330, 340, 350], 'ミディアム': [350, 360, 370, 380, 390, 400], 'ハイ': [400, 410, 420, 430, 440, 450] }, lever: [55, 75, 110, 140], camber: ['0°', '2°'], w1: [280, 300, 320, 340, 360, 380, 400, 420], l1: [350, 380, 420], sb: [86, 88, 90], w2: [5, 10, 15, 20, 25, 30] },
-    hasMirrorPaint: true, blockSmallWheels: true, tireBrand: 'IRC'
-  },
-  GWX3: {
-    title: "GWX III",
-    baseModels: [{ id: 'gwx3', name: 'GWX III フレーム', no: 'GWX3', price: 149000 }],
-    frameOptions: { shape: [{label:'タイプI', no:'1'}, {label:'タイプII', no:'2'}], length: [{label:'ショート', no:'1'}, {label:'ロング', no:'2'}], height: [{label:'レギュラー', no:'1'}, {label:'ハイ', no:'2'}] },
-    frameMap: { 'タイプI-ショート-レギュラー': 'No.111', 'タイプI-ショート-ハイ': 'No.112', 'タイプI-ロング-レギュラー': 'No.121', 'タイプI-ロング-ハイ': 'No.122', 'タイプII-ショート-レギュラー': 'No.211', 'タイプII-ショート-ハイ': 'No.212', 'タイプII-ロング-レギュラー': 'No.221', 'タイプII-ロング-ハイ': 'No.222' },
-    casterForks: [{ id: 'cz2p', name: 'CZ2-Pro (カーボン)', no: 'No.23', price: 22000 }, { id: 'sfr2', name: 'SFR2 ショート', no: 'No.14', price: 39000 }],
-    brakes: [{ id: 'br_h', name: 'ホリゾンタル', no: 'No.11', price: 26000 }, { id: 'br_o', name: 'ダイヤル上付け', no: 'No.21', price: 26000 },{ id: 'br_u', name: 'ダイヤル下付け', no: 'No.22', price: 28000 },],
-    footrests: [
-      { id: 'ft_pj_std', name: 'プレートジョイント std', no: 'No.11', price: 24000 }, 
-      { id: 'ft_pipe', name: 'パイプジョイント std', no: 'No.21', price: 24000 }, 
-      { id: 'ft_ps_std', name: 'プレートセパレート std', no: 'No.31', price: 35000 }
-    ],
-    wheels: [{ id: 'spn_w', name: 'スピナジー (白)', no: 'No.351', price: 142000 }, { id: 'spn_b', name: 'スピナジー (黒)', no: 'No.352', price: 142000 }, { id: 'ds3a', name: 'DS3 (A面)', no: 'No.251', price: 188000 }, { id: 'ds3z', name: 'DS3 (Z面)', no: 'No.252', price: 188000 }, { id: 'al5', name: 'AL-5', no: 'No.75', price: 76000 }, { id: 'mx4', name: 'MX4', no: 'No.45', price: 36000 }],
-    options: [{ id: 'opt_arm', name: 'アームレスト', no: 'No.11/13', price: 22000, ah:[255,265,275,285,295,305] }, { id: 'opt_flip', name: 'はね上げ式アームレスト', no: 'No.21/23', price: 28000, ah:[265,275,285,295,305,315] }, { id: 'opt_grip', name: 'グリップ', no: 'No.11', price: 6000 }, { id: 'opt_wheelie', name: 'ウィリーバー', no: 'No.1', price: 17000 }, { id: 'opt_micro', name: 'リアマイクロホイール', no: 'No.2', price: 22000 }, { id: 'opt_guard', name: 'サイドガード', no: 'No.3', price: 15000 }, { id: 'opt_f_guard', name: 'サイドガード+簡易フェンダー', no: 'No.4', price: 25000 }],
-    dimensionRules: { h4: { 'ロー': [280, 290, 300, 310, 320, 330], 'ミディアム': [330, 340, 350, 360, 370, 380], 'ハイ': [380, 390, 400, 410, 420, 430] }, lever: [55, 75, 110, 140], l8: [70, 60, 50, 40],camber: ['0°'], w1: [320, 340, 360, 380, 400, 420], l1: [350, 380, 420], w2: [5, 10, 15, 20, 25, 30] },
-    casterLimit: 105, blockSmallWheels: true, tireBrand: 'IRC'
-  },
-  SX_SR: {
-    title: "SX / SR シリーズ",
-    baseModels: [{ id: 'sx', name: 'No.1 SX [サイドレザー]', no: 'No.1', price: 119000 }, { id: 'sr', name: 'No.2 SR [サイドカバー]', no: 'No.2', price: 157000 }],
-    frameOptions: { shape: ['タイプII', 'タイプIII'], length: ['ショート', 'ロング'], height: ['レギュラー', 'ハイ', 'フラット'] },
-    frameMap: { 'タイプII-ショート-レギュラー': 'No.211', 'タイプII-ショート-ハイ': 'No.212', 'タイプII-ショート-フラット': 'No.213', 'タイプII-ロング-レギュラー': 'No.221', 'タイプII-ロング-ハイ': 'No.222', 'タイプII-ロング-フラット': 'No.223', 'タイプIII-ショート-レギュラー': 'No.311', 'タイプIII-ショート-ハイ': 'No.312', 'タイプIII-ショート-フラット': 'No.313', 'タイプIII-ロング-レギュラー': 'No.321', 'タイプIII-ロング-ハイ': 'No.322', 'タイプIII-ロング-フラット': 'No.323' },
-    axleTypes: [{ id: 'axle_a', name: '車軸A (エキセン)', no: 'No.4', price: 0, l8: [70, 50, 30] }, { id: 'axle_b', name: '車軸B (サス)', no: 'No.5', price: 22000, l8: [60, 40] }],
-    casterForks: [{ id: 'cz2s', name: 'CZ2-Std (アルミ)', no: 'No.24', price: 15000 }, { id: 'cz2p', name: 'CZ2-Pro (カーボン)', no: 'No.23', price: 22000 }, { id: 'sfr2', name: 'SFR2 (サス付)', no: 'No.13', price: 39000 }],
-    brakes: [{ id: 'br_u', name: 'ダイヤル下付け', no: 'No.22', price: 26000 }, { id: 'br_o', name: 'ダイヤル上付け', no: 'No.21', price: 26000 }, { id: 'br_h', name: 'ホリゾンタル', no: 'No.11', price: 26000 }],
-    footrests: [{ id: 'ft_pj_std', name: 'プレートジョイント std', no: 'No.11', price: 24000 }, { id: 'ft_pj_hi', name: 'プレートジョイント hi',  no: 'No.12', price: 27000 }, { id: 'ft_ps_std', name: 'プレートセパレート std', no: 'No.31', price: 35000 }, { id: 'ft_ps_hi',  name: 'プレートセパレート hi',  no: 'No.32', price: 27000 }, { id: 'ft_pipe', name: 'パイプジョイント std', no: 'No.21', price: 24000 }],
-    wheels: [{ id: 'ds3a', name: 'DS3 (A面)', no: 'No.251', price: 188000 },{ id: 'ds3z', name: 'DS3 (Z面)', no: 'No.252', price: 188000 }, { id: 'hhr3', name: 'HHR3', no: 'No.13', price: 120000 }, { id: 'al5', name: 'AL-5', no: 'No.75', price: 76000 }, { id: 'mx4', name: 'MX4', no: 'No.45', price: 36000 }],
-    options: [{ id: 'opt_arm', name: 'アームレスト', no: 'No.11/13', price: 22000, ah:[250,260,270,280,290,300,310] }, { id: 'opt_flip', name: 'はね上げ式アームレスト', no: 'No.21/23', price: 28000, ah:[270,280,290,300,310,320,330] }, { id: 'opt_grip', name: 'グリップ', no: 'No.11', price: 6000 }, { id: 'opt_wheelie', name: 'ウィリーバー', no: 'No.1', price: 17000 }, { id: 'opt_micro', name: 'リアマイクロホイール', no: 'No.2', price: 22000 }],
-    dimensionRules: { h4: { 'ロー': [300, 310, 320, 330, 340, 350], 'ミディアム': [350, 360, 370, 380, 390, 400], 'ハイ': [400, 410, 420, 430, 440, 450] }, lever: [55, 75, 110, 140], camber: ['0°', '2°'], w1: [280, 300, 320, 340, 360, 380, 400, 420], l1: [350, 380, 420], w2: [5, 10, 15, 20, 25, 30] },
-    tireBrand: 'KENDA'
-  },
-  MX_MR: {
-    title: "MX / MR シリーズ",
-      baseModels: [
-    { id: 'mx_base', name: 'MX [サイドレザー]', no: 'MX', price: 0 },
-    { id: 'mr_base', name: 'MR [サイドカバー]', no: 'MR', price: 0 },
-  ],
-    frameOptions: { 
-      size: [
-        { label: 'Sサイズ', no: 'No.1' }, 
-        { label: 'Mサイズ', no: 'No.2' }, 
-        { label: 'Lサイズ', no: 'No.3' }
-      ] 
-    },
-    footrests: MX_NEO_FOOTRESTS,
-    brakes: [{ id: 'br_h', name: 'ホリゾンタル', no: '', price: 0 }, { id: 'br_o', name: 'ダイヤル上付け', no: '', price: 0 }, { id: 'br_u', name: 'ダイヤル下付け', no: '', price: 0 }],
-    options: [
-      { id: 'opt_arm_mr', name: 'アームレスト (MR用)', no: 'No.1', price: 22000, ahLow:[250, 260, 270], ahHigh:[270, 280, 290, 300, 310] },
-      { id: 'opt_flip', name: 'はね上げ式アームレスト', no: 'No.1', price: 6000, 
-        ahLow: [260, 270, 280, 290, 300], 
-        ahHigh: [300, 310, 320, 330, 340] 
-      },
-      { id: 'opt_grip', name: 'グリップ', no: 'No.11', price: 6000 },
-      { id: 'opt_wheelie', name: 'ウイリーバー', no: 'No.1', price: 17000 },
-      { id: 'opt_micro', name: 'リア・マイクロホイール', no: 'No.2', price: 22000 },
-      { id: 'opt_suit_mx', name: 'スーツガード (MX用)', no: 'No.1', price: 6200 },
-      { id: 'opt_wide_add', name: 'ワイドキャスター加算', no: 'No.2', price: 8000 }
-    ],
-    dimensionRules: {
-      h4: { 
-        'ロー': [280, 290, 300, 310, 320, 330], 
-        'ミディアム': [330, 340, 350, 360, 370, 380], 
-        'ハイ': [380, 390, 400, 410, 420, 430], 
-        'スーパーハイ': [440, 450, 460, 470, 480] 
-      },
-      w1: [280, 300, 320, 340, 360, 380, 400, 420], 
-      l1: [330, 350, 380, 420], 
-      camber: ['0°', '2°'], 
-      w2: [5, 10, 15, 20, 25, 30], 
-      l8: [80, 60, 40],
-      lever: [55, 75, 110, 140]
-    },
-    tireBrand: 'KENDA'
-  },
-  NEO: {
-    title: "NEO",
-    baseModels: [
-      { id: 'neo_base', name: 'NEO 本体（標準）', no: 'NEO-STD', priceKey: 'neo.base' },
-    ],
-    frameOptions: {
-      type: [
-        { label: 'ショート+ロー', no: 'No.1' },
-        { label: 'ショート+ミディアム', no: 'No.2' },
-        { label: 'ロング+ロー', no: 'No.3' },
-        { label: 'ロング+ミディアム', no: 'No.4' },
-        { label: 'ロング+ハイ', no: 'No.5' }
-      ],
-      shape: [
-        { label: 'アップ', no: 'No.1' },
-        { label: 'スムーズ', no: 'No.2' }
-      ]
-    },
-    footrests: MX_NEO_FOOTRESTS,
-    brakes: [{ id: 'br_h', name: 'ホリゾンタル', no: '', price: 0 }, { id: 'br_o', name: 'ダイヤル上付け', no: '', price: 0 }, { id: 'br_u', name: 'ダイヤル下付け', no: '', price: 0 }],
-    options: [
-      { id: 'opt_arm', name: 'アームレスト', no: '標準', price: 0,
-        ahLow: [260, 270, 280, 290, 300, 310],
-        ahHigh: [290, 300, 310, 320, 330, 340, 350]
-      },
-      { id: 'opt_flip', name: 'はね上げ式アームレスト', no: 'No.1', price: 6000,
-        ahLow: [270, 280, 290, 300, 310], 
-        ahHigh: [310, 320, 330, 340, 350] 
-      },
-      { id: 'opt_arm_detachable', name: 'アームレスト着脱加工', no: 'No.1', price: 4000 },
-      { id: 'opt_grip', name: 'グリップ', no: 'No.11', price: 6000 },
-      { id: 'opt_assist_grip', name: '介助用グリップ', no: 'No.12', price: 8000 },
-      { id: 'opt_bush_handle_slide', name: 'ブッシュハンドルスライド式', no: 'No.2/4', price: 32000 },
-      { id: 'opt_wheelie', name: 'ウイリーバー', no: 'No.1', price: 17000 },
-      { id: 'opt_micro', name: 'リア・マイクロホイール', no: 'No.2', price: 22000 },
-      { id: 'opt_fender_neo', name: '樹脂製フェンダー', no: 'No.1', price: 27000 },
-      { id: 'opt_straight_pipe', name: 'ストレートパイプ', no: 'No.1', price: -5000 },
-      { id: 'opt_wide_add', name: 'ワイドキャスター加算', no: 'No.2', price: 8000 }
-    ],
-    dimensionRules: {
-      h4: { 
-        'ロー': [280, 290, 300, 310, 320, 330], 
-        'ミディアム': [330, 340, 350, 360, 370, 380], 
-        'ハイ': [380, 390, 400, 410, 420, 430], 
-        'スーパーハイ': [440, 450, 460, 470, 480] 
-      },
-      lever: [55, 75, 110, 140],
-      offset: ['0', '-20', '-40'],
-      sbMap: {
-        '0': [74, 82, 90, 98, 106],
-        '-20': [82, 90, 98, 106, 114],
-        '-40': [90, 98, 106, 114, 122]
-      },
-      l8Map: {
-        '0': [80, 60, 40, 20],
-        '-20': [60, 40, 20, 0],
-        '-40': [40, 20, 0, -20]
-      },
-      l1Map: {
-        '0': [350, 380, 420],
-        '-20': [330, 360, 400],
-        '-40': [310, 340, 380]
-      },
-      w1: [280, 300, 320, 340, 360, 380, 400, 420],
-      camber: ['0°'],
-      w2: [5, 10, 15, 20, 25, 30]
-    },
-    tireBrand: 'KENDA'
-  },
-  NEOplus: {
-    title: "NEOplus",
-    baseModels: [{ id: 'neop_base', name: 'NEOplus フレームユニット', no: 'ATO方式', price: 118000 }],
-    frameOptions: { shape: ['アップ', 'スムーズ'], length: ['ショート', 'ロング'], height: ['ロー', 'ミディアム', 'ハイ'] },
-    frameMap: { 'アップ-ショート-ロー': 'No.111', 'スムーズ-ショート-ロー': 'No.112', 'アップ-ショート-ミディアム': 'No.121', 'スムーズ-ショート-ミディアム': 'No.122', 'アップ-ロング-ロー': 'No.211', 'スムーズ-ロング-ロー': 'No.212', 'アップ-ロング-ミディアム': 'No.221', 'スムーズ-ロング-ミディアム': 'No.222', 'アップ-ロング-ハイ': 'No.231', 'スムーズ-ロング-ハイ': 'No.232' },
-    casterForks: [{ id: 'cz2s_n', name: 'CZ2-Std (アルミ)', no: 'No.24', price: 15000 }, { id: 'cz2p_n', name: 'CZ2-Pro (カーボン)', no: 'No.23', price: 22000 }, { id: 'sfr2_n', name: 'SFR2 (サス付)', no: 'No.13', price: 39000 }],
-    brakes: [{ id: 'br_u_n', name: 'ダイヤル下付け', no: 'No.22', price: 26000 }, { id: 'br_o_n', name: 'ダイヤル上付け', no: 'No.21', price: 26000 }, { id: 'br_h_n', name: 'ホリゾンタル', no: 'No.11', price: 26000 }],
-    footrests: [{ id: 'ft_pj_std_n', name: 'プレートジョイント std', no: 'No.11', price: 24000 }, { id: 'ft_pj_hi_n', name: 'プレートジョイント hi', no: 'No.12', price: 27000 }, { id: 'ft_ps_std_n', name: 'プレートセパレート std', no: 'No.31', price: 35000 }, { id: 'ft_ps_hi_n', name: 'プレートセパレート hi', no: 'No.32', price: 27000 }, { id: 'ft_pipe_n', name: 'パイプジョイント std', no: 'No.21', price: 24000 }],
-    wheels: [{ id: 'ds3a', name: 'DS3 (A面)', no: 'No.251', price: 188000 }, { id: 'ds3z', name: 'DS3 (Z面)', no: 'No.252', price: 188000 }, { id: 'hhr3', name: 'HHR3', no: 'No.13', price: 120000 }, { id: 'al5', name: 'AL-5', no: 'No.75', price: 76000 }, { id: 'mx4_n', name: 'MX4', no: 'No.45', price: 36000 }, { id: 'kaid_n', name: '介助ブレーキ付', no: 'No.65', price: 55000 }],
-    options: [{ id: 'opt_grip', name: 'グリップ', no: 'No.34', price: 6000 },{ id: 'opt_assist_n', name: '介助用グリップ', no: 'No.12', price: 8000 },{ id: 'opt_bush_handle_slide', name: 'ブッシュハンドルスライド式', no: 'No.2', price: 32000 },{ id: 'opt_arm_ln', name: 'アームレスト (No.11/13)', no: 'No.11/13', price: 22000, ahLow:[260, 270, 280, 290, 300, 310], ahHigh:[290, 300, 310, 320, 330, 340, 350] },{ id: 'opt_flip', name: 'はね上げ式アームレスト', no: 'No.21/23', price: 28000, ahLow:[290,300,310,320,330], ahHigh:[310,320,330,340,350] },{ id: 'opt_fender_n', name: '樹脂製フェンダー', no: 'No.1', price: 27000 },{ id: 'opt_micro', name: 'リアマイクロホイール', no: 'No.2', price: 22000 },],
-    dimensionRules: { 
-      h4: { 'ロー': [280, 290, 300, 310, 320, 330], 'ミディアム': [330, 340, 350, 360, 370, 380], 'ハイ': [380, 390, 400, 410, 420, 430], 'スーパーハイ': [440, 450, 460, 470, 480] }, 
-      lever: [55, 75, 110, 140], 
-      offset: ['0', '-20', '-40'], 
-      sbMap: { '0': [70, 74, 78, 82, 86, 90, 94, 98, 102, 106], '-20': [78, 82, 86, 90, 94, 98, 102, 106, 110, 114], '-40': [86, 90, 94, 98, 102, 106, 110, 114, 118, 122] }, 
-      l8Map: { '0': [90, 80, 70, 60, 50, 40, 30, 20, 10], '-20': [70, 60, 50, 40, 30, 20, 10, 0, -10], '-40': [50, 40, 30, 20, 10, 0, -10, -20, -30] }, 
-      l1Map: {
-        '0': [350, 380, 420],
-        '-20': [330, 360, 400],
-        '-40': [310, 340, 380]
-      },
-      camber: ['0°'], 
-      w1: [280, 300, 320, 340, 360, 380, 400, 420], 
-      w2: [5, 10, 15, 20, 25, 30] 
-    },
-    tireBrand: 'KENDA'
-  },
-  Fusion: {
-    title: "Fusion シリーズ",
-    baseModels: [{ id: 'fusion', name: 'Fusion フレーム', no: 'Fusion', price: 62000 }],
-    frameOptions: { length: ['ショート', 'ロング'], height: ['フラット', 'レギュラー'] },
-    frameMap: { 'ショート-フラット': 'No.1', 'ショート-レギュラー': 'No.2', 'ロング-フラット': 'No.3', 'ロング-レギュラー': 'No.4' },
-    casterForks: [{ id: 'cz2s', name: 'CZ2-Std (アルミ)', no: 'No.24', price: 15000 }, { id: 'cz2p', name: 'CZ2-Pro (カーボン)', no: 'No.23', price: 22000 }, { id: 'sfr2', name: 'SFR2 (サス付)', no: 'No.13', price: 39000 }],
-    brakes: [{ id: 'br_o', name: 'ダイヤル上付け', no: 'No.1', price: 26000 }],
-    footrests: COMMON_FOOTRESTS,
-    wheels: [{ id: 'kaid', name: '介助ブレーキ付', no: 'No.65', price: 55000 }, { id: 'hhr3', name: 'HHR3', no: 'No.13', price: 120000 }, { id: 'al5', name: 'AL-5', no: 'No.75', price: 76000 }, { id: 'mx4', name: 'MX4', no: 'No.45', price: 36000 }, { id: 'fixed', name: 'ワイヤースポーク固定式', no: 'No.51', price: 17000 }],
-    options: [
-      { id: 'opt_grip', name: 'グリップ', no: 'No.34', price: 6000 },
-      { id: 'opt_flip', name: 'はね上げ式アームレスト', no: 'No.3/4', price: 28000, 
-        ahLow: [260, 270, 280, 290, 300, 310],
-        ahHigh: [300, 310, 320, 330, 340, 350]
-      },
-      { id: 'opt_hi_leather', name: 'ハイグレードレザーSET', no: 'No.1', price: 12000 }, 
-      { id: 'opt_arm', name: 'アームレスト (ロー/ハイ)', no: 'No.1/2', price: 22000,
-        ahLow: [250, 260, 270, 280, 290, 300],
-        ahHigh: [290, 300, 310, 320, 330, 340]
-      }, 
-      { id: 'opt_wheelie', name: 'ウィリーバー', no: 'No.1', price: 14000 }, 
-      { id: 'opt_tip', name: 'ティッピングバー', no: 'No.2', price: 5000 }
-    ],
-    dimensionRules: { h4: { 'ロー': [300, 310, 320, 330, 340, 350], 'ミディアム': [350, 360, 370, 380, 390, 400], 'ハイ': [400, 410, 420, 430, 440, 450], 'スーパーハイ': [460,470,480,490,500] }, lever: [55, 75, 110, 140], l8Map: { 'レギュラー': [70, 50, 30, 10, -10], 'フラット': [60, 40, 20, 0, -20] }, camber: ['0°'], sb: [83, 90, 97], w1: [280, 300, 320, 340, 360, 380, 400, 420], l1: [350, 380, 410], w2: [5, 10, 15, 20, 25, 30] },
-    hasCushionCaster: true, tireBrand: 'KENDA'
-  },
-  GWE: {
-  title: "GW-E (電動車いす)",
-  baseModels: [{ id: 'gwe', name: 'GW-E フレーム', no: 'GW-E', price: 140000 }],
-  frameOptions: {
-    shape: [{ label: 'タイプI', no: 'No.1' }, { label: 'タイプIII', no: 'No.3' }],
-    height: [{ label: 'レギュラー', no: 'No.1' }, { label: 'フラット', no: 'No.3' }],
-    pipe: [{ label: 'ストレート', no: 'No.1' }, { label: 'シボリ', no: 'No.2' }]
-  },
-  frameMap: { 'タイプI-レギュラー-ストレート': 'No.1', 'タイプIII-レギュラー-ストレート': 'No.3' },
-  casterForks: [{ id: 'cz2s_e', name: 'CZ2-Std (アルミ)', no: 'No.52', price: 15000 }, { id: 'sfr2_e', name: 'SFR2 (サス付)', no: 'No.13', price: 39000 }],
-  brakes: [{ id: 'br_o_e', name: 'ダイヤル上付け', no: 'No.21', price: 26000 }, { id: 'br_u_e', name: 'ダイヤル下付け', no: 'No.22', price: 26000 }],
-  footrests: COMMON_FOOTRESTS,
-  options: [
-  { id: 'opt_arm_e', name: 'アームレスト着脱加工', no: 'No.1', price: 4000 },
-  { id: 'opt_ctrl',  name: 'コントローラースタンド', no: 'No.1', price: 4000 },
-  // ★GW-E 標準アームレスト
-  {
-    id: 'opt_arm',
-    name: 'アームレスト',
-    no: '標準',
-    price: 0,
-    ahLowByHeight: {
-      'レギュラー': [250, 260, 270, 280],
-      'フラット':   [260, 270, 280, 290],
-    },
-    ahHighByHeight: {
-      'レギュラー': [290, 300, 310, 320, 330],
-      'フラット':   [300, 310, 320, 330, 340],
-    },
-  },
-],
-  dimensionRules: {
-    h4: { 'ロー': [280, 290, 300, 310, 320, 330], 'ミディアム': [330, 340, 350, 360, 370, 380], 'ハイ': [380, 390, 400, 410, 420, 430] },
-    lever: [55, 75, 110, 140],
-    camber: ['0°'],
-    w1: [280, 300, 320, 340, 360, 380, 400, 420],
-    l1: [350, 380, 420],
-    w2: [5, 10, 15, 20, 25, 30],
-    // ★フレーム高さで車軸位置(L8)を切替
-    offset: ['0', '-20'],
-    l8Map: {
-      '0': ['0'],       // レギュラー時
-      '-20': ['-20']    // フラット時
-    }
-  },
-  tireBrand: null
-},
-  LX_LR: {
-    title: "LX / LR シリーズ",
-    baseModels: [
-      { id: 'lx_base', name: 'LX [サイドレザー]', no: 'No.11', price: 169000 },
-      { id: 'lr_base', name: 'LR [サイドカバー]', no: 'No.12', price: 199000 }
-    ],
-    frameOptions: { 
-      shape: [{label: 'タイプI', no: 'No.1'}, {label: 'タイプII', no: 'No.2'}, {label: 'タイプIII', no: 'No.3'}],
-      length: [{label: 'ショート', no: 'No.1'}, {label: 'ロング', no: 'No.2'}],
-      height: [{label: 'レギュラー', no: 'No.1'}, {label: 'ハイ', no: 'No.2'}, {label: 'フラット', no: 'No.3'}],
-      pipe: [{label: 'ストレート', no: 'No.1'}, {label: 'シボリ', no: 'No.2'}]
-    },
-    axleTypes: [
-      { id: 'lx_l8_pos1', name: 'No.1 70(50)', no: 'No.1', price: 0, valReg: 70, valFlat: 50 },
-      { id: 'lx_l8_pos2', name: 'No.2 50(30)', no: 'No.2', price: 0, valReg: 50, valFlat: 30 },
-      { id: 'lx_l8_pos3', name: 'No.3 30(10)', no: 'No.3', price: 0, valReg: 30, valFlat: 10 },
-    ],
-    casterForks: [ { id: 'cz2p', name: 'CZ2-Pro (カーボン)', no: 'No.23', price: 22000 }, { id: 'sfr2_s', name: 'SFR2 ショート', no: 'No.14', price: 39000 }],
-    brakes: [{ id: 'br_h_s', name: 'ホリゾンタル (S)', no: 'No.11', price: 26000 }, { id: 'br_o_s', name: 'ダイヤル上付け (S)', no: 'No.21', price: 26000 }, { id: 'br_u_s', name: 'ダイヤル下付け (S)', no: 'No.22', price: 28000 }],
-    footrests:[
-      { id: 'ft_pj_std', name: 'プレートジョイント std', no: 'No.11', price: 24000 }, 
-      { id: 'ft_pipe', name: 'パイプジョイント std', no: 'No.21', price: 24000 }, 
-      { id: 'ft_ps_std', name: 'プレートセパレート std', no: 'No.31', price: 35000 }
-    ],
-    wheels: [
-      { id: 'ds3a', name: 'DS3 (A面)', no: 'No.251', price: 188000 },
-      { id: 'ds3z', name: 'DS3 (Z面)', no: 'No.252', price: 188000 },
-      { id: 'hhr3', name: 'HHR3', no: 'No.13', price: 120000 },
-      { id: 'al5', name: 'AL-5', no: 'No.75', price: 76000 }
-    ],
-    options: [
-      {
-        id: 'opt_arm',
-        name: 'アームレスト',
-        no: 'No.11/13',
-        price: 22000,
-        ahLowByHeight: {
-          'レギュラー': [250, 260, 270, 280, 290],
-          'ハイ':       [230, 240, 250, 260],
-          'フラット':   [240, 250, 260, 270, 280],
-        },
-        ahHighByHeight: {
-          'レギュラー': [280, 290, 300, 310, 320, 330],
-          'ハイ':       [250, 260, 270, 280, 290, 300],
-          'フラット':   [270, 280, 290, 300, 310, 320],
-        },
-      },
-      { id: 'opt_grip', name: 'グリップ', no: 'No.11', price: 6000 },
-      { id: 'opt_wheelie', name: 'ウィリーバー', no: 'No.1', price: 17000 },
-    ],
-    dimensionRules: { h4: { 'ロー': [300, 310, 320, 330, 340, 350], 'ミディアム': [350, 360, 370, 380, 390, 400], 'ハイ': [400, 410, 420, 430, 440, 450] }, lever: [55, 75, 110, 140], w1: [280, 300, 320, 340, 360, 380, 400, 420], l1: [350, 380, 420], w2: [5, 10, 15, 20, 25, 30] },
-    tireBrand: 'IRC'
-  },
-  FX_FR: {
-    title: "FX / FR シリーズ",
-    baseModels: [
-      { id: 'fx_base', name: 'FX [サイドレザー]', no: 'No.1', price: 149000 },
-      { id: 'fr_base', name: 'FR [サイドカバー]', no: 'No.2', price: 180000 }
-    ],
-    frameOptions: { 
-      length: [{label: 'ショート', no: 'No.1'}, {label: 'ロング', no: 'No.2'}],
-      height: [{label: 'レギュラー', no: 'No.1'}, {label: 'ハイ', no: 'No.2'}, {label: 'フラット', no: 'No.3'}],
-      pipe: [{label: 'ストレート', no: 'No.1'}, {label: 'シボリ', no: 'No.2'}]
-    },
-    axleTypes: [
-      { id: 'fx_l8_pos1', name: 'No.1 70(50)', no: 'No.1', price: 0, valReg: 70, valFlat: 50 },
-      { id: 'fx_l8_pos2', name: 'No.2 50(30)', no: 'No.2', price: 0, valReg: 50, valFlat: 30 },
-      { id: 'fx_l8_pos3', name: 'No.3 30(10)', no: 'No.3', price: 0, valReg: 30, valFlat: 10 },
-    ],
-    casterForks: [{ id: 'cz2s', name: 'CZ2-Std (アルミ)', no: 'No.24', price: 15000 }, { id: 'cz2p', name: 'CZ2-Pro (カーボン)', no: 'No.23', price: 22000 }, { id: 'sfr2_s', name: 'SFR2 ショート', no: 'No.14', price: 39000 }],
-    brakes: [{ id: 'br_h_s', name: 'ホリゾンタル (S)', no: 'No.11', price: 26000 }, { id: 'br_o_s', name: 'ダイヤル上付け (S)', no: 'No.21', price: 26000 }, { id: 'br_u_s', name: 'ダイヤル下付け (S)', no: 'No.22', price: 28000 }],
-    footrests: [
-      { id: 'ft_plate', name: 'アルミプレート', no: 'No.11', price: 24000 },
-      { id: 'ft_pipe_fx', name: 'パイプ', no: 'No.21', price: 24000 }
-    ],
-    wheels: [
-      { id: 'ds3a', name: 'DS3 (A面)', no: 'No.251', price: 188000 },
-      { id: 'ds3z', name: 'DS3 (Z面)', no: 'No.252', price: 188000 },
-      { id: 'hhr3', name: 'HHR3', no: 'No.13', price: 120000 },
-      { id: 'al5', name: 'AL-5', no: 'No.75', price: 76000 },
-      { id: 'mx4', name: 'MX4', no: 'No.45', price: 36000 }
-    ],
-    options: [
-      {
-        id: 'opt_arm',
-        name: 'アームレスト',
-        no: 'No.11/13',
-        price: 22000,
-        ahLowByHeight: {
-          'レギュラー': [250, 260, 270, 280, 290],
-          'ハイ':       [230, 240, 250, 260],
-          'フラット':   [240, 250, 260, 270, 280],
-        },
-        ahHighByHeight: {
-          'レギュラー': [280, 290, 300, 310, 320, 330],
-          'ハイ':       [250, 260, 270, 280, 290, 300],
-          'フラット':   [270, 280, 290, 300, 310, 320],
-        },
-      },
-      { id: 'opt_grip', name: 'グリップ', no: 'No.11', price: 6000 },
-      { id: 'opt_bg', name: 'バックグリップ', no: 'No.1', price: 10000 },
-      { id: 'opt_wheelie', name: 'ウィリーバー', no: 'No.1', price: 17000 },
-    ],
-    dimensionRules: { h4: { 'ロー': [300, 310, 320, 330, 340, 350], 'ミディアム': [350, 360, 370, 380, 390, 400], 'ハイ': [400, 410, 420, 430, 440, 450] }, lever: [55, 75, 110, 140], w1: [280, 300, 320, 340, 360, 380, 400, 420], l1: [350, 380, 420], w2: [5, 10, 15, 20, 25, 30] },
-    tireBrand: 'IRC'
-  }
-};
 // ===============================
 // 背角度（固定表示用ルール）
 // ===============================
@@ -700,6 +311,20 @@ const BACK_ANGLE_RULES = {
     return '88°';
   },
 };
+// トップページ：オーダー / キッズの分岐
+const TopPage = ({ onSelect }) => (
+  <div className="min-h-screen bg-[#f8fafc] flex flex-col items-center justify-center p-6">
+    <div className="w-full max-w-md space-y-4">
+      <h1 className="text-center font-black text-xl md:text-2xl text-slate-800 tracking-widest uppercase mb-8">OX Configurator</h1>
+      <button type="button" onClick={() => onSelect('order')} className="w-full bg-blue-600 hover:bg-blue-700 text-white py-6 rounded-2xl font-black text-base shadow-xl shadow-blue-500/30 border-2 border-blue-500/50 transition-all">
+        オーダーカタログ
+      </button>
+      <button type="button" onClick={() => onSelect('kids')} className="w-full bg-amber-500 hover:bg-amber-600 text-white py-6 rounded-2xl font-black text-base shadow-xl shadow-amber-500/30 border-2 border-amber-400/50 transition-all">
+        キッズカタログ
+      </button>
+    </div>
+  </div>
+);
 const SelectionGroup = ({ title, items, selectionKey, dynamicNameFn, isInvalid, selections, setSelections }) => (
   <div className={`rounded-2xl shadow-sm overflow-hidden mb-6 border-2 ${isInvalid ? 'border-red-500 bg-red-50' : 'border border-slate-200 bg-white'}`}>
     <div className={`px-5 py-3 border-b flex items-center gap-2 font-bold text-slate-800 tracking-widest uppercase text-xs ${isInvalid ? 'border-red-200 bg-red-100' : 'border-slate-200 bg-slate-50'}`}>{title}</div>
@@ -714,8 +339,13 @@ const SelectionGroup = ({ title, items, selectionKey, dynamicNameFn, isInvalid, 
     </div>
   </div>
 );
+const ACCENT_ORDER = { navIcon: 'bg-blue-600', subtotal: 'text-blue-400', confirmBtn: 'bg-green-600 hover:bg-green-700 shadow-green-500/30', sectionBar: 'bg-blue-600', sectionIcon: 'text-blue-600', sectionBorder: 'border-blue-600', sectionBg: 'bg-blue-50', sectionRing: 'ring-blue-600' };
+const ACCENT_KIDS = { navIcon: 'bg-amber-500', subtotal: 'text-amber-400', confirmBtn: 'bg-amber-600 hover:bg-amber-700 shadow-amber-500/30', sectionBar: 'bg-amber-500', sectionIcon: 'text-amber-600', sectionBorder: 'border-amber-500', sectionBg: 'bg-amber-50', sectionRing: 'ring-amber-500' };
 const App = () => {
+  const [catalogVariant, setCatalogVariant] = useState(null);
   const [selectedSeries, setSelectedSeries] = useState(null);
+  const catalog = !catalogVariant ? CATALOG : (catalogVariant === 'kids' ? CATALOG_KIDS : CATALOG);
+  const accent = !catalogVariant ? ACCENT_ORDER : (catalogVariant === 'kids' ? ACCENT_KIDS : ACCENT_ORDER);
   const [selections, setSelections] = useState({
     baseModel: null,
     package: null,
@@ -751,7 +381,7 @@ const App = () => {
   const [remarks, setRemarks] = useState('');
   const [gweUnitDetail, setGweUnitDetail] = useState({ unitId: '', parts: {} });
   const [armrestSel, setArmrestSel] = useState({ kind: '', lh: '', ah: '' });
-  const currentCatalog = useMemo(() => selectedSeries ? CATALOG[selectedSeries] : null, [selectedSeries]);
+  const currentCatalog = useMemo(() => selectedSeries && catalog ? catalog[selectedSeries] : null, [selectedSeries, catalog]);
   const getWheelNo = useCallback((wheel, size) => {
     if (!wheel) return '---';
     const isSpecialSeries = ['MX_MR', 'NEO', 'GWE', 'LX_LR', 'FX_FR'].includes(selectedSeries);
@@ -779,11 +409,15 @@ const App = () => {
       const hLabel = frameParts.height?.label || 'レギュラー';
       return currentCatalog.dimensionRules.l8Map[hLabel] || [];
     }
+    if ((selectedSeries === 'MINI_NEO_KIDS' || selectedSeries === 'MINI_NEO_JUNIOR') && currentCatalog.dimensionRules?.l8) {
+      if (currentCatalog.dimensionRules.l8CamberMinus4 && dimensions.cm === '-4') return currentCatalog.dimensionRules.l8CamberMinus4;
+      return currentCatalog.dimensionRules.l8;
+    }
     if (currentCatalog.dimensionRules?.l8Map) {
       return currentCatalog.dimensionRules.l8Map[dimensions.offset] || [];
     }
     return currentCatalog.dimensionRules?.l8 || selections.axleType?.l8 || [70, 50, 30];
-  }, [currentCatalog, selectedSeries, frameParts.height, selections.axleType, dimensions.offset]);
+  }, [currentCatalog, selectedSeries, frameParts.height, selections.axleType, dimensions.offset, dimensions.cm]);
   useEffect(() => {
     if (!['LX_LR', 'FX_FR'].includes(selectedSeries) || !selections.axleType) return;
     const h = frameParts.height?.label || 'レギュラー';
@@ -811,9 +445,11 @@ const App = () => {
     if (!currentCatalog?.tireBrand) return [];
     const brand = TIRE_COLOR_MASTER[currentCatalog.tireBrand];
     const size = selections.wheelSize;
+    // キッズカタログはタイヤカラー選択なし・グレーのみ表示
+    if (catalogVariant === 'kids') return [brand.default(size)];
     if (size === '24インチ' && brand[size]) return brand[size];
     return [brand.default(size)];
-  }, [currentCatalog, selections.wheelSize]);
+  }, [currentCatalog, selections.wheelSize, catalogVariant]);
   useEffect(() => {
     if (!currentCatalog?.tireBrand) return;
     const tires = availableTires;
@@ -843,6 +479,16 @@ const App = () => {
   }, [selections.axleType, currentCatalog]);
   const armrestConfig = useMemo(() => {
     if (!currentCatalog?.options) return { arm: null, flip: null };
+    const dr = currentCatalog.dimensionRules;
+    if (selectedSeries === 'COTON' && dr?.armrestAhByType) {
+      const by = dr.armrestAhByType;
+      const arm = {
+        low:  { id: 'coton_arm_low',  baseId: 'coton_arm', name: 'アームレスト ロー',   no: '-', price: 0, ah: (by['ロー'] || []).map(Number) },
+        mid:  { id: 'coton_arm_mid',  baseId: 'coton_arm', name: 'アームレスト ミディアム', no: '-', price: 0, ah: (by['ミディアム'] || []).map(Number) },
+        high: { id: 'coton_arm_high', baseId: 'coton_arm', name: 'アームレスト ハイ',  no: '-', price: 0, ah: (by['ハイ'] || []).map(Number) },
+      };
+      return { arm, flip: null };
+    }
     const findById = (id) => currentCatalog.options.find(o => o.id === id);
     const findByNameIncludes = (kw) => currentCatalog.options.find(o => (o.name || '').includes(kw));
     const zzrLow = findById('opt_arm_l');
@@ -876,17 +522,23 @@ const App = () => {
   useEffect(() => {
     if (!armrestSel.kind || !armrestSel.lh || !armrestSel.ah) { upsertArmrestOption(null); return; }
     const group = armrestSel.kind === 'arm' ? armrestConfig.arm : armrestConfig.flip;
-    const base = armrestSel.lh === 'ロー' ? group?.low : group?.high;
+    const base = armrestSel.lh === 'ロー' ? group?.low : armrestSel.lh === 'ミディアム' ? group?.mid : group?.high;
     if (!base) { upsertArmrestOption(null); return; }
     let calculatedPrice = base.price || 0;
-    const isStandardZeroSeries = (selectedSeries === 'NEO' || selectedSeries === 'GWE' || (selectedSeries === 'MX_MR' && selections.baseModel?.id === 'mx_base'));
+    const isStandardZeroSeries = (selectedSeries === 'NEO' || selectedSeries === 'GWE' || selectedSeries === 'COTON' || (selectedSeries === 'MX_MR' && selections.baseModel?.id === 'mx_base'));
     if (isStandardZeroSeries) {
-      calculatedPrice = armrestSel.kind === 'arm' ? 0 : 6000;
+      calculatedPrice = (selectedSeries === 'COTON' || armrestSel.kind === 'arm') ? 0 : 6000;
     } else if (selectedSeries === 'MX_MR' && selections.baseModel?.id === 'mr_base') {
       calculatedPrice = armrestSel.kind === 'arm' ? 22000 : 28000;
     }
     upsertArmrestOption({ id: `${base.id}__${armrestSel.ah}`, name: base.name, no: base.no, price: calculatedPrice, note: `アームレスト高 ${armrestSel.ah}mm`, __group: 'ARMREST' });
   }, [armrestSel, armrestConfig, upsertArmrestOption, selectedSeries, selections.baseModel]);
+  // COTON: アームレストは標準のため最初から「アームレスト」を選択状態にする
+  useEffect(() => {
+    if (selectedSeries === 'COTON' && armrestConfig.arm && !armrestSel.kind) {
+      setArmrestSel(s => ({ ...s, kind: 'arm' }));
+    }
+  }, [selectedSeries, armrestConfig.arm, armrestSel.kind]);
   const [isConfirmed, setIsConfirmed] = useState(false);
   const [showConfirmReset, setShowConfirmReset] = useState(null);
   const [showFullResetConfirm, setShowFullResetConfirm] = useState(false);
@@ -938,18 +590,27 @@ const App = () => {
     const isSbLocked = lockSbSeries.has(selectedSeries) && !!derivedBackAngleValue;
     const sbOpts = isSbLocked ? [derivedBackAngleValue] : (currentCatalog.dimensionRules.sbMap ? (currentCatalog.dimensionRules.sbMap[dimensions.offset] || []) : (currentCatalog.dimensionRules.sb || []));
     let l1Opts = [];
-    if (selectedSeries === 'MX_MR' && frameParts.size?.label) {
+    let w1Opts = currentCatalog.dimensionRules.w1 || [];
+    let h4TypeKeys = Object.keys(currentCatalog.dimensionRules.h4 || {});
+    let h4ValOpts = (currentCatalog.dimensionRules.h4?.[dimensions.h4Type] || []).map(String);
+    if (selectedSeries === 'COTON' && frameParts.size?.label) {
+      const sizeLabel = frameParts.size.label;
+      l1Opts = (currentCatalog.dimensionRules.l1BySize && currentCatalog.dimensionRules.l1BySize[sizeLabel]) || [];
+      w1Opts = (currentCatalog.dimensionRules.w1BySize && currentCatalog.dimensionRules.w1BySize[sizeLabel]) || [];
+      h4TypeKeys = [sizeLabel];
+      h4ValOpts = (currentCatalog.dimensionRules.h4BySize && currentCatalog.dimensionRules.h4BySize[sizeLabel] || []).map(String);
+    } else if (selectedSeries === 'MX_MR' && frameParts.size?.label) {
       l1Opts = frameParts.size.label === 'Sサイズ' ? ['330'] : ['350', '380', '420'];
     } else {
       l1Opts = currentCatalog.dimensionRules.l1Map ? (currentCatalog.dimensionRules.l1Map[dimensions.offset] || []) : (currentCatalog.dimensionRules.l1 || []);
     }
     return {
-      offset: (selectedSeries === 'NEOplus' || selectedSeries === 'NEO') ? (currentCatalog.dimensionRules.offset || []) : [],
-      h4Type: Object.keys(currentCatalog.dimensionRules.h4 || {}),
-      h4Val: (currentCatalog.dimensionRules.h4?.[dimensions.h4Type] || []).map(String),
+      offset: (currentCatalog.dimensionRules.offset || []),
+      h4Type: h4TypeKeys,
+      h4Val: h4ValOpts,
       l8: (l8Options || []).map(String),
       lever: isHorizontalBrake ? [] : (currentCatalog.dimensionRules.lever || []).map(String),
-      w1: (currentCatalog.dimensionRules.w1 || []).map(String),
+      w1: (w1Opts || []).map(String),
       l1: (l1Opts || []).map(String),
       sb: (sbOpts || []).map(String),
       w2: (currentCatalog.dimensionRules.w2 || []).map(String),
@@ -973,6 +634,31 @@ const App = () => {
       return changed ? next : prev;
     });
   }, [dimensionOptsMap]);
+  // COTON: フレームサイズ変更時にバックレスト高タイプ(h4Type)をサイズに同期
+  useEffect(() => {
+    if (selectedSeries !== 'COTON' || !frameParts.size?.label) return;
+    const sizeLabel = frameParts.size.label;
+    if (dimensions.h4Type !== sizeLabel) {
+      const dr = currentCatalog?.dimensionRules;
+      const h4Vals = (dr?.h4BySize && dr.h4BySize[sizeLabel]) || [];
+      setDimensions(prev => ({
+        ...prev,
+        h4Type: sizeLabel,
+        h4Val: h4Vals.length ? String(h4Vals[0]) : '',
+        w1: (dr?.w1BySize && dr.w1BySize[sizeLabel]?.[0]) != null ? String(dr.w1BySize[sizeLabel][0]) : prev.w1,
+        l1: (dr?.l1BySize && dr.l1BySize[sizeLabel]?.[0]) != null ? String(dr.l1BySize[sizeLabel][0]) : prev.l1,
+      }));
+    }
+  }, [selectedSeries, frameParts.size?.label]);
+  // COTON: 基本構成モデル(S/M)選択時にフレームサイズを連動（フレーム構成でサイズを二重に出さないため）
+  useEffect(() => {
+    if (selectedSeries !== 'COTON' || !selections.baseModel?.id) return;
+    const sizeMap = { coton_s: { label: 'Sサイズ', no: 'S' }, coton_m: { label: 'Mサイズ', no: 'M' } };
+    const next = sizeMap[selections.baseModel.id];
+    if (next && frameParts.size?.label !== next.label) {
+      setFrameParts(p => ({ ...p, size: next }));
+    }
+  }, [selectedSeries, selections.baseModel?.id]);
   // 確定表示前にチェックする必須項目（オプション・アクセサリー・選択肢1つの寸法は除く）
   const DIMENSION_LABELS = { offset: 'オフセット', h4Type: 'H4 バック高（タイプ）', h4Val: 'H4 バック高（値）', l8: '車軸前後位置 (L8)', lever: 'ブレーキレバー長', w1: '座幅(W1)', l1: '座奥行(L1)', sb: 'バックレスト角(SB)', w2: 'ハンドリム間隔(W2)', cm: 'キャンバー' };
   const missingRequiredItems = useMemo(() => {
@@ -981,7 +667,7 @@ const App = () => {
     if (selectedSeries !== 'NEO' && currentCatalog.baseModels?.length && !selections.baseModel) missing.push('基本構成モデル');
     if ((selectedSeries === 'MX_MR' || selectedSeries === 'NEO') && !selections.package) missing.push('パッケージ');
     if (currentCatalog.frameOptions) {
-      const frameLabels = { type: 'フレームタイプ', shape: selectedSeries === 'NEO' ? 'フレーム前方形状' : '前方形状', length: '長さ', height: '高さ', pipe: 'フロントパイプ', size: 'サイズ' };
+      const frameLabels = { type: 'フレームタイプ', shape: selectedSeries === 'NEO' ? 'フレーム前方形状' : '前方形状', length: '長さ', height: '高さ', pipe: 'フロントパイプ', size: 'サイズ', seat: 'シート' };
       Object.keys(currentCatalog.frameOptions).forEach(cat => {
         if (!frameParts[cat]) missing.push(frameLabels[cat] || cat);
       });
@@ -994,19 +680,26 @@ const App = () => {
         });
       }
     }
-    if (currentCatalog.axleTypes?.length && !selections.axleType) missing.push('車軸タイプ');
-    if (currentCatalog.casterForks?.length && !selections.casterFork) missing.push('キャスターフォーク');
-    if (!casterWheelType) missing.push('キャスターホイール（種類）');
-    if (casterWheelType && !casterWheelSize) missing.push('キャスターホイール（サイズ）');
-    if (currentCatalog.footrests?.length && !selections.footrest) missing.push('フットレスト');
-    if (currentCatalog.brakes?.length && !selections.brake) missing.push('ブレーキシステム');
+    if (selectedSeries !== 'COTON') {
+      if (currentCatalog.axleTypes?.length && !selections.axleType) missing.push('車軸タイプ');
+      if (currentCatalog.casterForks?.length && !selections.casterFork) missing.push('キャスターフォーク');
+      if (catalogVariant !== 'kids') {
+        if (!casterWheelType) missing.push('キャスターホイール（種類）');
+        if (casterWheelType && !casterWheelSize) missing.push('キャスターホイール（サイズ）');
+      }
+      if (currentCatalog.footrests?.length && !selections.footrest) missing.push('フットレスト');
+      if (currentCatalog.brakes?.length && !selections.brake) missing.push('ブレーキシステム');
+    }
     if (selectedSeries !== 'GWE') {
-      if (currentCatalog.wheels?.length && !selections.wheel) missing.push('メインホイール（種類）');
-      if (!selections.wheelSize) missing.push('メインホイール（サイズ）');
-      if (currentCatalog?.tireBrand && !selections.tire) missing.push('タイヤカラー');
+      const hasMainWheel = currentCatalog.wheels && currentCatalog.wheels.length > 0;
+      if (hasMainWheel && !selections.wheel) missing.push('メインホイール（種類）');
+      if (hasMainWheel && !selections.wheelSize) missing.push('メインホイール（サイズ）');
+      if (currentCatalog?.tireBrand && !selections.tire && catalogVariant !== 'kids') missing.push('タイヤカラー');
       if (HANDRIM_OPTIONS?.length && !selections.handrim) missing.push('ハンドリム');
     }
+    const cotonSkipDims = selectedSeries === 'COTON' ? ['l8', 'w2', 'cm', 'sb'] : [];
     Object.entries(dimensionOptsMap || {}).forEach(([key, opts]) => {
+      if (cotonSkipDims.includes(key)) return;
       const arr = Array.isArray(opts) ? opts : [];
       if (arr.length <= 1) return;
       if (key === 'h4Type' || key === 'h4Val') {
@@ -1019,7 +712,7 @@ const App = () => {
     });
     if (armrestSel.kind && (!armrestSel.lh || !armrestSel.ah)) missing.push('アームレスト（高低・高さ）');
     return missing;
-  }, [selectedSeries, currentCatalog, selections, frameParts, dimensionOptsMap, dimensions, casterWheelType, casterWheelSize, gweUnitDetail, armrestSel]);
+  }, [selectedSeries, currentCatalog, selections, frameParts, dimensionOptsMap, dimensions, casterWheelType, casterWheelSize, gweUnitDetail, armrestSel, catalogVariant]);
   const [showMissingRequired, setShowMissingRequired] = useState([]);
   useEffect(() => {
     if (missingRequiredItems.length === 0) setShowMissingRequired([]);
@@ -1034,9 +727,9 @@ const App = () => {
     }
     return item.name;
   }, [selectedSeries, frameParts.height]);
-  // MX/MR/NEO: ハンドリムはアルマイト標準0円・ビニール+5000円、番号なし
+  // MX/MR/NEO / キッズカタログ: ハンドリムはアルマイト標準0円・ビニール+5000円、番号なし
   const handrimOptionsForDisplay = useMemo(() => {
-    if (selectedSeries === 'MX_MR' || selectedSeries === 'NEO') {
+    if (selectedSeries === 'MX_MR' || selectedSeries === 'NEO' || catalogVariant === 'kids') {
       return HANDRIM_OPTIONS.map(hr => ({
         ...hr,
         no: '',
@@ -1045,15 +738,15 @@ const App = () => {
       }));
     }
     return HANDRIM_OPTIONS;
-  }, [selectedSeries]);
+  }, [selectedSeries, catalogVariant]);
   const handrimResolved = useMemo(() => {
     if (!selections.handrim) return null;
-    if (selectedSeries === 'MX_MR' || selectedSeries === 'NEO') {
+    if (selectedSeries === 'MX_MR' || selectedSeries === 'NEO' || catalogVariant === 'kids') {
       const price = selections.handrim.id === 'hr_vinyl' ? 5000 : 0;
       return { ...selections.handrim, no: '', price, priceKey: undefined };
     }
     return selections.handrim;
-  }, [selections.handrim, selectedSeries]);
+  }, [selections.handrim, selectedSeries, catalogVariant]);
   const totalAmount = useMemo(() => {
     let sum = 0;
     // 注意: selections.tire はタイヤ色選択のみで現状価格=0。有料タイヤ追加時は list に含めること
@@ -1062,6 +755,7 @@ const App = () => {
     // 塗装価格計算
     const activePlan = PAINT_PLANS.find(p => p.id === paint.type);
     if (activePlan) sum += getPrice(activePlan.priceKey);
+    if (selectedSeries === 'COTON' && frameParts.seat?.price) sum += frameParts.seat.price;
     (selectedOptions || []).forEach(o => sum += itemPrice(o));
     (selectedAccessories || []).forEach(a => sum += itemPrice(a));
     if (selectedSeries === 'GWE' && gweUnitDetail?.unitId) {
@@ -1070,7 +764,7 @@ const App = () => {
       Object.values(gweUnitDetail.parts || {}).forEach(p => { if (p) sum += itemPrice(p); });
     }
     return sum;
-  }, [selections, handrimResolved, casterWheelType, selectedOptions, selectedAccessories, paint, selectedSeries, gweUnitDetail]);
+  }, [selections, handrimResolved, casterWheelType, selectedOptions, selectedAccessories, paint, selectedSeries, gweUnitDetail, frameParts]);
   const totalLineItems = useMemo(() => {
     const items = [];
     const add = (label, item) => { 
@@ -1150,7 +844,6 @@ add('ハンドリム', handrimResolved);
     return items;
   }, [selections, handrimResolved, frameParts, selectedSeries, casterWheelType, casterWheelSize, selectedOptions, selectedAccessories, paint, gweUnitDetail, currentCatalog, getWheelNo, getAxleDisplayName]);
   const performSeriesReset = useCallback((key) => {
-    const cat = CATALOG[key];
     setSelectedSeries(key);
     setSelections({
       baseModel: (key === 'NEO') ? { id: 'neo_fixed', name: 'NEO', no: 'NEO', price: 0 } : null,
@@ -1565,6 +1258,7 @@ add('ハンドリム', handrimResolved);
     const body = encodeURIComponent(lines.join('\n'));
     window.location.href = `mailto:?subject=${subject}&body=${body}`;
   }, [currentCatalog, selectedSeries, customerInfo, totalLineItems, dimensions, totalAmount, DIMENSION_LABELS]);
+  if (!catalogVariant) return <TopPage onSelect={setCatalogVariant} />;
   return (
     <div id="pdf-area" className="min-h-screen bg-[#f8fafc] font-sans text-slate-900 pb-20">
       {showConfirmReset && (
@@ -1687,16 +1381,24 @@ add('ハンドリム', handrimResolved);
       <nav className="bg-slate-900 text-white p-5 fixed top-0 inset-x-0 z-50 shadow-xl border-b border-white/5">
         <div className="max-w-7xl mx-auto flex justify-between items-center gap-2 min-w-0">
           <div className="flex items-center gap-3">
-            <div className="bg-blue-600 p-2.5 rounded-xl"><Settings size={20} /></div>
+            <div className={`${accent.navIcon} p-2.5 rounded-xl`}><Settings size={20} /></div>
             <div>
               <h1 className="font-black text-base md:text-lg leading-none uppercase tracking-widest">Configurator</h1>
               <p className="text-[9px] opacity-40 uppercase tracking-[0.3em] mt-1 font-bold">2025 v5.9 Stable</p>
             </div>
+            <button
+              type="button"
+              onClick={() => { handleFullReset(); setCatalogVariant(null); }}
+              className="text-[10px] font-bold uppercase tracking-widest text-white/70 hover:text-white bg-white/5 hover:bg-white/10 px-3 py-2 rounded-xl transition-all border border-white/10"
+              title="トップページに戻る"
+            >
+              トップへ
+            </button>
           </div>
           <div className="flex items-center gap-6 min-w-0 flex-1 justify-end">
             <div className="flex flex-col text-right min-w-0 shrink-0">
-              <span className="text-[10px] font-bold text-blue-400 uppercase mb-1 leading-none">Subtotal</span>
-              <span className="text-lg md:text-2xl font-black font-mono tracking-tighter text-blue-400 leading-none">¥{totalAmount.toLocaleString()}</span>
+              <span className={`text-[10px] font-bold ${accent.subtotal} uppercase mb-1 leading-none`}>Subtotal</span>
+              <span className={`text-lg md:text-2xl font-black font-mono tracking-tighter ${accent.subtotal} leading-none`}>¥{totalAmount.toLocaleString()}</span>
               {showMissingRequired.length > 0 && (
                 <span className="text-[9px] text-amber-400 mt-1 leading-none">未選択の項目があります</span>
               )}
@@ -1731,7 +1433,7 @@ add('ハンドリム', handrimResolved);
               setShowMissingRequired([]);
               setShowTotalBreakdown(true);
             }}
-            className="bg-green-600 text-white px-6 py-4 rounded-2xl font-black text-base shadow-xl shadow-green-500/30 hover:bg-green-700 disabled:opacity-30 disabled:cursor-not-allowed min-w-[88px] transition-all"
+            className={`${accent.confirmBtn} text-white px-6 py-4 rounded-2xl font-black text-base shadow-xl disabled:opacity-30 disabled:cursor-not-allowed min-w-[88px] transition-all`}
           >
             確認
           </button>
@@ -1743,15 +1445,15 @@ add('ハンドリム', handrimResolved);
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
             <div className="lg:col-span-8 space-y-4">
               <div className="bg-white p-5 md:p-8 rounded-2xl shadow-sm border border-slate-200 mb-6 relative overflow-hidden">
-                <div className="absolute top-0 left-0 w-2 h-full bg-blue-600"></div>
+                <div className={`absolute top-0 left-0 w-2 h-full ${accent.sectionBar}`}></div>
                 <h2 className="text-xl font-black mb-6 flex items-center gap-3 tracking-widest uppercase leading-none">
                   <Truck size={24} className="text-slate-400" /> 1. 機種シリーズ選択
                 </h2>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  {Object.keys(CATALOG).map(key => (
-                    <button key={key} type="button" onClick={() => handleSeriesSelect(key)} className={`p-4 border-2 rounded-2xl transition-all text-left ${selectedSeries === key ? 'border-blue-600 bg-blue-50 ring-1 ring-blue-600' : 'border-slate-100 bg-white hover:border-blue-300'}`}>
-                      <p className={`text-[10px] font-bold mb-1 uppercase tracking-widest ${selectedSeries === key ? 'text-blue-600' : 'text-slate-400'}`}>Model</p>
-                      <p className="font-black text-sm md:text-base tracking-tighter uppercase">{CATALOG[key].title}</p>
+                  {Object.keys(catalog).map(key => (
+                    <button key={key} type="button" onClick={() => handleSeriesSelect(key)} className={`p-4 border-2 rounded-2xl transition-all text-left ${selectedSeries === key ? `${accent.sectionBorder} ${accent.sectionBg} ring-1 ${accent.sectionRing}` : 'border-slate-100 bg-white hover:border-blue-300'}`}>
+                      <p className={`text-[10px] font-bold mb-1 uppercase tracking-widest ${selectedSeries === key ? accent.sectionIcon : 'text-slate-400'}`}>Model</p>
+                      <p className="font-black text-sm md:text-base tracking-tighter uppercase">{catalog[key].title}</p>
                     </button>
                   ))}
                 </div>
@@ -1759,7 +1461,7 @@ add('ハンドリム', handrimResolved);
               {currentCatalog && (
                 <div className="space-y-4 animate-in">
                   <h2 className="text-xl font-black mb-6 flex items-center gap-3 mt-12 border-b border-slate-200 pb-4 uppercase tracking-widest">
-                    <Package size={24} className="text-blue-600" /> 2. 仕様パーツ構成
+                    <Package size={24} className={accent.sectionIcon} /> 2. 仕様パーツ構成
                   </h2>
                   {selectedSeries !== 'NEO' && <SelectionGroup title="基本構成モデル" items={currentCatalog.baseModels} selectionKey="baseModel" isInvalid={showMissingRequired.includes('基本構成モデル')} selections={selections} setSelections={setSelections} />}
                   {(selectedSeries === 'MX_MR' || selectedSeries === 'NEO') && <SelectionGroup title="パッケージ" items={selectedSeries === 'NEO' ? NEO_PACKAGE_OPTIONS : (selections.baseModel?.id === 'mr_base' ? MR_PACKAGE_OPTIONS : MX_PACKAGE_OPTIONS)} selectionKey="package" isInvalid={showMissingRequired.includes('パッケージ')} selections={selections} setSelections={setSelections} />}
@@ -1812,21 +1514,25 @@ add('ハンドリム', handrimResolved);
                       </div>
                       <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-8">
                         {Object.keys(currentCatalog.frameOptions).map(cat => {
-                          const frameCatLabel = cat === 'type' ? 'フレームタイプ' : cat === 'shape' ? (selectedSeries === 'NEO' ? 'フレーム前方形状' : '前方形状') : cat === 'length' ? '長さ' : cat === 'height' ? '高さ' : cat === 'size' ? 'サイズ' : 'フロントパイプ';
+                          const frameCatLabel = cat === 'type' ? 'フレームタイプ' : cat === 'shape' ? (selectedSeries === 'NEO' ? 'フレーム前方形状' : '前方形状') : cat === 'length' ? '長さ' : cat === 'height' ? '高さ' : cat === 'size' ? 'サイズ' : cat === 'seat' ? 'シート' : 'フロントパイプ';
                           const frameCatInvalid = showMissingRequired.includes(frameCatLabel);
                           return (
                           <div key={cat} className={`space-y-3 rounded-xl p-3 border-2 ${frameCatInvalid ? 'border-red-500 bg-red-50' : 'border-transparent'}`}>
                             <label className="block text-[10px] font-black text-slate-400 uppercase mb-1 tracking-widest">
-                              {cat === 'type' ? 'フレームタイプ' : cat === 'shape' ? (selectedSeries === 'NEO' ? 'フレーム前方形状' : '前方形状') : cat === 'length' ? '長さ' : cat === 'height' ? '高さ' : cat === 'size' ? 'サイズ' : 'フロントパイプ'}
+                              {cat === 'type' ? 'フレームタイプ' : cat === 'shape' ? (selectedSeries === 'NEO' ? 'フレーム前方形状' : '前方形状') : cat === 'length' ? '長さ' : cat === 'height' ? '高さ' : cat === 'size' ? 'サイズ' : cat === 'seat' ? 'シート' : 'フロントパイプ'}
                             </label>
                             <div className="flex flex-col gap-1.5">
                               {(currentCatalog.frameOptions[cat] || []).map(opt => {
                                 const optObj = (typeof opt === 'string') ? { label: opt, no: opt } : opt;
+                                const price = (optObj.price != null && optObj.price > 0) ? optObj.price : 0;
                                 return (
                                   <button type="button"  key={optObj.label} onClick={() => setFrameParts(p => ({ ...p, [cat]: optObj }))} className={`p-4 text-left border rounded-xl text-xs font-bold transition-all ${frameParts[cat]?.label === optObj.label ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-600 hover:border-blue-300'}`}>
                                     <div className="flex items-center justify-between gap-3">
                                       <span className="text-xs font-black">{optObj.label}</span>
-                                      {optObj.no && <span className={`text-[10px] font-mono font-black ${frameParts[cat]?.label === optObj.label ? 'text-white/90' : 'text-slate-400'}`}>{optObj.no}</span>}
+                                      <div className="flex items-center gap-2">
+                                        {optObj.no && <span className={`text-[10px] font-mono font-black ${frameParts[cat]?.label === optObj.label ? 'text-white/90' : 'text-slate-400'}`}>{optObj.no}</span>}
+                                        {price > 0 && <span className={`text-[10px] font-mono font-black ${frameParts[cat]?.label === optObj.label ? 'text-white/90' : 'text-blue-600'}`}>+¥{price.toLocaleString()}</span>}
+                                      </div>
                                     </div>
                                   </button>
                                 );
@@ -1837,9 +1543,15 @@ add('ハンドリム', handrimResolved);
                       </div>
                     </div>
                   )}
+                  {selectedSeries !== 'COTON' && (
+                    <>
+                  {(catalogVariant !== 'kids') && (
+                    <>
                   <SelectionGroup title="車軸タイプ (L8連動)" items={currentCatalog.axleTypes} selectionKey="axleType" dynamicNameFn={getAxleDisplayName} isInvalid={showMissingRequired.includes('車軸タイプ')} selections={selections} setSelections={setSelections} />
                   <SelectionGroup title="キャスターフォーク" items={currentCatalog.casterForks} selectionKey="casterFork" isInvalid={showMissingRequired.includes('キャスターフォーク')} selections={selections} setSelections={setSelections} />
-                  {(() => {
+                  </>
+                  )}
+                  {catalogVariant !== 'kids' && (() => {
                     const casterTypeInvalid = showMissingRequired.includes('キャスターホイール（種類）');
                     const casterSizeInvalid = showMissingRequired.includes('キャスターホイール（サイズ）');
                     const casterBlockInvalid = casterTypeInvalid || casterSizeInvalid;
@@ -1868,6 +1580,8 @@ add('ハンドリム', handrimResolved);
                   </div>
                   ); })()}
                   {currentCatalog.footrests && <SelectionGroup title="フットレスト" items={currentCatalog.footrests} selectionKey="footrest" isInvalid={showMissingRequired.includes('フットレスト')} selections={selections} setSelections={setSelections} />}
+                    </>
+                  )}
                   {/* ---- ブレーキ以降のパーツをリセットするボタン ---- */}
                   {(selections.brake?.id || selections.wheel || selections.tire || selections.handrim) && (
                     <div className="flex justify-end mb-1">
@@ -1884,8 +1598,8 @@ add('ハンドリム', handrimResolved);
                       </button>
                     </div>
                   )}
-                  {currentCatalog.brakes && <SelectionGroup title="ブレーキシステム" items={currentCatalog.brakes} selectionKey="brake" isInvalid={showMissingRequired.includes('ブレーキシステム')} selections={selections} setSelections={setSelections} />}
-                  {selectedSeries !== 'GWE' && (() => {
+                  {selectedSeries !== 'COTON' && currentCatalog.brakes && <SelectionGroup title="ブレーキシステム" items={currentCatalog.brakes} selectionKey="brake" isInvalid={showMissingRequired.includes('ブレーキシステム')} selections={selections} setSelections={setSelections} />}
+                  {selectedSeries !== 'GWE' && (currentCatalog.wheels == null || currentCatalog.wheels.length > 0) && (() => {
                     const wheelTypeInvalid = showMissingRequired.includes('メインホイール（種類）');
                     const wheelSizeInvalid = showMissingRequired.includes('メインホイール（サイズ）');
                     const tireInvalid = showMissingRequired.includes('タイヤカラー');
@@ -1900,7 +1614,7 @@ add('ハンドリム', handrimResolved);
                               <label className="block text-[10px] font-black text-slate-400 uppercase mb-2">A. 種類</label>
                               <div className="grid grid-cols-1 gap-2">
                                 {(currentCatalog.wheels || []).map(w => (
-                                  <button type="button"  key={w.id} onClick={() => setSelections(prev => ({...prev, wheel: w, wheelSize: (WHEEL_SIZE_RULES?.[w.id] || ['24インチ'])[0]}))} className={`p-4 text-left border rounded-xl text-xs font-bold transition-all ${selections.wheel?.id === w.id ? 'border-blue-600 bg-blue-50 ring-1 ring-blue-600 shadow-sm' : 'border-slate-100 bg-white hover:border-blue-300 shadow-sm'}`}>
+                                  <button type="button"  key={w.id} onClick={() => setSelections(prev => ({...prev, wheel: w, wheelSize: (currentCatalog.wheelSizes || WHEEL_SIZE_RULES?.[w.id] || ['24インチ'])[0]}))} className={`p-4 text-left border rounded-xl text-xs font-bold transition-all ${selections.wheel?.id === w.id ? 'border-blue-600 bg-blue-50 ring-1 ring-blue-600 shadow-sm' : 'border-slate-100 bg-white hover:border-blue-300 shadow-sm'}`}>
                                     <span className="text-[9px] block opacity-70 uppercase leading-none mb-1">{getWheelNo(w, selections.wheelSize)}</span>{w.name} (+¥{w.price.toLocaleString()})
                                   </button>
                                 ))}
@@ -1910,7 +1624,7 @@ add('ハンドリム', handrimResolved);
                           <div className={`mb-6 ${wheelSizeInvalid ? 'rounded-xl p-3 border-2 border-red-500 bg-red-50' : ''}`}>
                             <label className="block text-[10px] font-black text-slate-400 uppercase mb-2">B. サイズ</label>
                             <select className="w-full bg-slate-50 border-2 rounded-xl p-4 text-sm font-black outline-none transition-all" value={selections.wheelSize} onChange={e => setSelections({...selections, wheelSize: e.target.value})}>
-                              { (selectedSeries === 'LX_LR' || selectedSeries === 'FX_FR') ? ['24インチ'].map(v => <option key={v} value={v}>{v}</option>) : (selectedSeries === 'MX_MR' || selectedSeries === 'NEO') ? ['22インチ','23インチ','24インチ','25インチ'].map(v => <option key={v} value={v}>{v}</option>) : (WHEEL_SIZE_RULES?.[selections.wheel?.id] || ['--']).map(v => <option key={v} value={v} disabled={currentCatalog.blockSmallWheels && (v==='22インチ' || v==='23インチ')}>{v}</option>) }
+                              { (selectedSeries === 'LX_LR' || selectedSeries === 'FX_FR') ? ['24インチ'].map(v => <option key={v} value={v}>{v}</option>) : (selectedSeries === 'MX_MR' || selectedSeries === 'NEO') ? ['22インチ','23インチ','24インチ','25インチ'].map(v => <option key={v} value={v}>{v}</option>) : (currentCatalog.wheelSizes || WHEEL_SIZE_RULES?.[selections.wheel?.id] || ['--']).map(v => <option key={v} value={v} disabled={currentCatalog.blockSmallWheels && (v==='22インチ' || v==='23インチ')}>{v}</option>) }
                             </select>
                           </div>
                           {currentCatalog?.tireBrand && (
@@ -1947,7 +1661,11 @@ add('ハンドリム', handrimResolved);
                         <div className="space-y-4">
                           <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 italic">A. 塗装プラン選択</label>
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                            {PAINT_PLANS.filter(plan => plan.id !== 'mirror' || selectedSeries === 'ZZR').map(plan => {
+                            {PAINT_PLANS.filter(plan => {
+                            if (plan.id === 'mirror' && selectedSeries !== 'ZZR') return false;
+                            if (catalogVariant === 'kids' && (plan.id === 'grand' || plan.id === 'splash' || plan.id === 'special_1')) return false;
+                            return true;
+                          }).map(plan => {
                               const isZzr3Restricted = selectedSeries === 'ZZR' && plan.id === 'special_3';
                               return (
                                 <button 
@@ -2032,7 +1750,7 @@ add('ハンドリム', handrimResolved);
                       <h3 className="text-xl font-black text-slate-800 tracking-widest uppercase">3. 各機種 詳細寸法指定</h3>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-                      {(selectedSeries === 'NEOplus' || selectedSeries === 'NEO') && (
+                      {((selectedSeries === 'NEOplus' || selectedSeries === 'NEO') || (catalogVariant === 'kids' && (currentCatalog.dimensionRules?.offset || []).length > 0)) && (
                         <div className={`space-y-4 p-5 rounded-3xl border-2 shadow-inner ${showMissingRequired.includes('オフセット') ? 'border-red-500 bg-red-50' : 'bg-slate-50 border border-blue-100/50'}`}>
                           <label className="block text-[10px] font-black text-blue-600 uppercase mb-1 tracking-widest italic">オフセット</label>
                           <select className="w-full bg-white border border-slate-200 rounded-xl p-3 text-sm font-bold outline-none" value={dimensions.offset} onChange={e => {
@@ -2054,16 +1772,16 @@ add('ハンドリム', handrimResolved);
                       <div className={`space-y-2 p-5 rounded-3xl border-2 shadow-inner ${(showMissingRequired.includes('H4 バック高（タイプ）') || showMissingRequired.includes('H4 バック高（値）')) ? 'border-red-500 bg-red-50' : 'bg-slate-50 border border-slate-200/50'}`}>
                         <label className="block text-[10px] font-black text-slate-400 uppercase mb-1 tracking-widest italic">H4 バック高</label>
                         <select className="w-full bg-white border rounded-xl p-2 text-xs font-bold outline-none mb-2" value={dimensions.h4Type} onChange={e => setDimensions(d => ({...d, h4Type: e.target.value}))}>
-                          {Object.keys(currentCatalog.dimensionRules?.h4 || {}).length > 1 && <option value="">選択</option>}
-                          {Object.keys(currentCatalog.dimensionRules?.h4 || {}).map(v => <option key={v} value={v}>{v}</option>)}
+                          {(dimensionOptsMap.h4Type || []).length > 1 && <option value="">選択</option>}
+                          {(dimensionOptsMap.h4Type || []).map(v => <option key={v} value={v}>{v}</option>)}
                         </select>
                         <select className="w-full bg-white border rounded-xl p-2 text-xs font-bold outline-none" value={dimensions.h4Val} onChange={e => setDimensions(d => ({...d, h4Val: e.target.value}))}>
-                          {((currentCatalog.dimensionRules?.h4?.[dimensions.h4Type] || []).length > 1) && <option value="">選択</option>}
-                          {(currentCatalog.dimensionRules?.h4?.[dimensions.h4Type] || []).map(v => <option key={v} value={v}>{v}mm</option>)}
+                          {((dimensionOptsMap.h4Val || []).length > 1) && <option value="">選択</option>}
+                          {(dimensionOptsMap.h4Val || []).map(v => <option key={v} value={v}>{v}mm</option>)}
                         </select>
                       </div>
                       <div className={`space-y-4 p-5 rounded-3xl border-2 shadow-inner ${(showMissingRequired.includes(DIMENSION_LABELS.l8) || showMissingRequired.includes(DIMENSION_LABELS.lever)) ? 'border-red-500 bg-red-50' : 'bg-slate-50 border border-slate-200/50'}`}>
-                        {!['LX_LR', 'FX_FR'].includes(selectedSeries) && (
+                        {!['LX_LR', 'FX_FR', 'COTON'].includes(selectedSeries) && (
                           <div className="space-y-1">
                             <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest italic">車軸前後位置 (L8)</label>
                             <select className="w-full bg-white border rounded-xl p-2 text-xs font-bold outline-none" value={dimensions.l8} onChange={e => setDimensions(d => ({...d, l8: e.target.value}))}>
@@ -2091,16 +1809,23 @@ add('ハンドリム', handrimResolved);
                         ) : null}
                       </div>
                       <div className="bg-blue-50/40 p-5 rounded-[2rem] border border-blue-100 col-span-full flex flex-wrap gap-6 justify-center">
-                        {['w1', 'l1', 'sb', 'w2', 'cm'].map(k => {
+                        {['w1', 'l1', 'sb', 'w2', 'cm'].filter(k => {
+                          if (selectedSeries === 'COTON' && ['w2', 'cm', 'sb'].includes(k)) return false;
+                          return true;
+                        }).map(k => {
                           const lockSbSeries = new Set(['GWX3', 'MX_MR', 'GWE', 'LX_LR', 'FX_FR', 'SX_SR']);
                           const isSbLocked = (k === 'sb') && lockSbSeries.has(selectedSeries) && !!derivedBackAngleValue;
                           let opts = [];
                           if (k === 'cm') opts = camberOptions;
                           else if (k === 'sb') opts = isSbLocked ? [derivedBackAngleValue] : (currentCatalog?.dimensionRules?.sbMap ? (currentCatalog.dimensionRules.sbMap[dimensions.offset] || []) : (currentCatalog?.dimensionRules?.sb || []));
                           else if (k === 'l1') {
-                            if (selectedSeries === 'MX_MR' && frameParts.size?.label) {
+                            if (selectedSeries === 'COTON' && frameParts.size?.label && currentCatalog?.dimensionRules?.l1BySize) {
+                              opts = (currentCatalog.dimensionRules.l1BySize[frameParts.size.label] || []).map(String);
+                            } else if (selectedSeries === 'MX_MR' && frameParts.size?.label) {
                               opts = frameParts.size.label === 'Sサイズ' ? ['330'] : ['350', '380', '420'];
                             } else opts = currentCatalog?.dimensionRules?.l1Map ? (currentCatalog.dimensionRules.l1Map[dimensions.offset] || []) : (currentCatalog?.dimensionRules?.l1 || []);
+                          } else if (k === 'w1' && selectedSeries === 'COTON' && frameParts.size?.label && currentCatalog?.dimensionRules?.w1BySize) {
+                            opts = (currentCatalog.dimensionRules.w1BySize[frameParts.size.label] || []).map(String);
                           } else opts = currentCatalog?.dimensionRules?.[k] || [];
                           const dimLabel = { w1: '座幅(W1)', l1: '座奥行(L1)', sb: 'バックレスト角(SB)', w2: 'ハンドリム間隔(W2)', cm: 'キャンバー' }[k];
                           const dimInvalid = showMissingRequired.includes(dimLabel);
@@ -2109,7 +1834,7 @@ add('ハンドリム', handrimResolved);
                               <span className="text-[8px] font-black text-slate-400 block mb-1 uppercase tracking-widest">{dimLabel}</span>
                               <select className="w-full bg-white border rounded-xl p-2 text-xs font-black outline-none shadow-sm text-center" value={dimensions[k]} onChange={e => setDimensions(d => ({ ...d, [k]: e.target.value }))} disabled={(k === 'cm' && selections.axleType?.id === 'axle_b') || (k === 'sb' && isSbLocked) || (k === 'l1' && selectedSeries === 'MX_MR' && frameParts.size?.label === 'Sサイズ')}>
                                 {opts.length > 1 && <option value="">選択</option>}
-                                {opts.map(v => <option key={v} value={v}>{v}{k === 'sb' ? '°' : ''}</option>)}
+                                {opts.map(v => <option key={v} value={v}>{v}{(k === 'sb' || k === 'cm') ? '°' : ''}</option>)}
                               </select>
                             </div>
                           );
@@ -2122,12 +1847,12 @@ add('ハンドリム', handrimResolved);
                     {Object.values(armrestConfig).some(v => v) && (
                       <div className={`border-2 rounded-2xl p-5 mb-6 grid grid-cols-1 md:grid-cols-3 gap-3 ${showMissingRequired.includes('アームレスト（高低・高さ）') ? 'border-red-500 bg-red-50' : 'bg-slate-50 border border-slate-200'}`}>
                         <select className="bg-white border rounded-xl p-3 text-sm font-bold outline-none" value={armrestSel.kind} onChange={e => setArmrestSel({kind: e.target.value, lh: '', ah: ''})}>
-                          {!(selectedSeries === 'NEO' || selectedSeries === 'GWE' || (selectedSeries === 'MX_MR' && selections.baseModel?.id === 'mx_base')) && <option value="">アームレストなし</option>}
-                          {armrestConfig.arm && <option value="arm">アームレスト {(selectedSeries === 'NEO' || selectedSeries === 'GWE' || (selectedSeries === 'MX_MR' && selections.baseModel?.id === 'mx_base')) ? '(標準 込)' : '(+¥22,000)'}</option>}
+                          {!(selectedSeries === 'NEO' || selectedSeries === 'GWE' || selectedSeries === 'COTON' || (selectedSeries === 'MX_MR' && selections.baseModel?.id === 'mx_base')) && <option value="">アームレストなし</option>}
+                          {armrestConfig.arm && <option value="arm">アームレスト {(selectedSeries === 'NEO' || selectedSeries === 'GWE' || selectedSeries === 'COTON' || (selectedSeries === 'MX_MR' && selections.baseModel?.id === 'mx_base')) ? '(標準 込)' : '(+¥22,000)'}</option>}
                           {armrestConfig.flip && <option value="flip">はね上げ式 {(selectedSeries === 'NEO' || (selectedSeries === 'MX_MR' && selections.baseModel?.id === 'mx_base')) ? '(+¥6,000)' : '(+¥28,000)'}</option>}
                         </select>
-                        <select className="bg-white border rounded-xl p-3 text-sm font-bold outline-none disabled:opacity-20" value={armrestSel.lh} disabled={!armrestSel.kind} onChange={e => setArmrestSel(s => ({...s, lh: e.target.value, ah: ''}))}><option value="">-- 高低 --</option><option value="ロー">ロー</option><option value="ハイ">ハイ</option></select>
-                        <select className="bg-white border rounded-xl p-3 text-sm font-bold outline-none disabled:opacity-20" value={armrestSel.ah} disabled={!armrestSel.kind || !armrestSel.lh} onChange={e => setArmrestSel(s => ({...s, ah: e.target.value}))}><option value="">-- 高さ --</option>{(armrestSel.lh === 'ロー' ? (armrestSel.kind === 'arm' ? armrestConfig.arm?.low : armrestConfig.flip?.low) : (armrestSel.kind === 'arm' ? armrestConfig.arm?.high : armrestConfig.flip?.high))?.ah?.map(v => <option key={v} value={v}>{v}mm</option>)}</select>
+                        <select className="bg-white border rounded-xl p-3 text-sm font-bold outline-none disabled:opacity-20" value={armrestSel.lh} disabled={!armrestSel.kind} onChange={e => setArmrestSel(s => ({...s, lh: e.target.value, ah: ''}))}><option value="">-- 高低 --</option><option value="ロー">ロー</option>{armrestConfig.arm?.mid && <option value="ミディアム">ミディアム</option>}<option value="ハイ">ハイ</option></select>
+                        <select className="bg-white border rounded-xl p-3 text-sm font-bold outline-none disabled:opacity-20" value={armrestSel.ah} disabled={!armrestSel.kind || !armrestSel.lh} onChange={e => setArmrestSel(s => ({...s, ah: e.target.value}))}><option value="">-- 高さ --</option>{((armrestSel.lh === 'ロー' ? (armrestSel.kind === 'arm' ? armrestConfig.arm?.low : armrestConfig.flip?.low) : armrestSel.lh === 'ミディアム' ? armrestConfig.arm?.mid : (armrestSel.kind === 'arm' ? armrestConfig.arm?.high : armrestConfig.flip?.high))?.ah || []).map(v => <option key={v} value={v}>{v}mm</option>)}</select>
                       </div>
                     )}
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -2146,10 +1871,10 @@ add('ハンドリム', handrimResolved);
                   <div className="bg-slate-900 rounded-[2.5rem] p-8 text-white relative overflow-hidden mb-8 border border-blue-500/20">
                     <h3 className="text-xl font-black mb-8 flex items-center gap-3 tracking-widest uppercase"><Heart size={24} className="text-blue-400" /> 5. アクセサリー</h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                      {COMMON_ACCESSORIES.map(acc => (
+                      {(currentCatalog?.accessories && currentCatalog.accessories.length > 0 ? currentCatalog.accessories : COMMON_ACCESSORIES).map(acc => (
                         <button key={acc.id} onClick={() => toggleItem(acc, selectedAccessories, setSelectedAccessories)} className={`flex justify-between items-center p-5 border rounded-2xl text-left transition-all ${selectedAccessories.find(a=>a.id===acc.id) ? 'border-blue-600 bg-blue-600 shadow-xl scale-[1.02]' : 'border-white/10 bg-white/5 hover:bg-white/10'}`}>
                           <div><p className="text-[9px] font-bold text-blue-400 mb-1 tracking-widest uppercase leading-none">{acc.no}</p><span className="text-xs font-bold uppercase">{acc.name}</span></div>
-                          <span className="text-[10px] font-mono font-black opacity-60">¥{itemPrice(acc).toLocaleString()}</span>
+                          <span className="text-[10px] font-mono font-black opacity-60">¥{(acc.price != null ? acc.price : itemPrice(acc)).toLocaleString()}</span>
                         </button>
                       ))}
                     </div>
