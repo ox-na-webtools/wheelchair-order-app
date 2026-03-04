@@ -1,3 +1,4 @@
+import { calcPrice } from './src/lib/pricing.js';
 const { useState, useMemo, useEffect, useCallback } = React;
 function Icon({ size = 24, className = '', children }) {
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>{children}</svg>;
@@ -22,172 +23,7 @@ const ExternalLink = (p) => <Icon {...p}><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 
 const User = (p) => <Icon {...p}><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></Icon>;
 const Store = (p) => <Icon {...p}><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><path d="M9 22V12h6v10"/></Icon>;
 const UserCheck = (p) => <Icon {...p}><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8l2 2-4 4-2-2 2-2"/></Icon>;
-// --- カタログ・マスターデータ ---
-// --- カタログ・マスターデータ ---
-// =========================
-// 価格マスター
-// =========================
-const PRICE_MASTER = {
-  // --- GW-E ユニット本体 ---
-  'gwe.jwg1.base': 446000,
-  'gwe.jwg1.ctrl_arm': 12000,   // ⓓ アームレスト取付け
-  'gwe.jwg1.joy_7500': 7500,    // ⓔ 一部
-  'gwe.jwg1.joy_10500': 10500,  // ⓔ 一部
-  'gwe.jwg1.switch_toggle': 9500, // ⓕ トグル
-  'gwe.jwx2.base': 423000,
-  'gwe.jwx2.sporty': 17300,      // ⓐ スポーティ
-  'gwe.jwx2.batt_li': 37800,     // ⓑ リチウム
-  'gwe.jwx2.hr_vinyl': 16100,    // Ⓒ ビニール
-  // 塗装プラン価格
-  'paint.standard': 0,
-  'paint.special_1': 10000,
-  'paint.special_2': 18000,
-  'paint.special_3': 24000,
-  'paint.grand': 18000,
-  'paint.splash': 15000,
-  'paint.mirror': 36000,
-  // キャスター種類
-  'caster.resin': 10000,
-  'caster.lpc3': 18000,
-  'caster.wcr5': 26000,
-  'caster.wide': 14000,
-  'caster.cushion': 16000,
-  // ===============================
-  // MX/MR / NEO キャスター（標準仕様）
-  // ===============================
-  "caster_mxneo.resin": 0,
-  "caster_mxneo.lpc3": 8000,
-  "caster_mxneo.wide": 0,
-  // ハンドリム
-  'handrim.alu': 13000,
-  'handrim.vinyl': 18000,
-  // アクセサリー
-  'acc.pouch': 2600,
-  'acc.armcover': 4800,
-  'acc.bottle': 2200,
-  'acc.backpack': 8000,
-  'acc.bag_s': 7400,
-  'acc.net': 5500,
-  'acc.suit': 6200,
-  'acc.framecover': 4000,
-  'acc.belt_a': 5200,
-  // エラスティックベルト価格 (S, M, L)
-  'acc.belt_e.s': 5500,
-  'acc.belt_e.m': 6000,
-  'acc.belt_e.l': 6500,
-  // ホールディングベルト価格 (S, M, L)
-  'acc.belt_h.s': 2400,
-  'acc.belt_h.m': 2600,
-  'acc.belt_h.l': 2800,
-  'acc.tool': 1400,
-  'acc.pump': 24200,
-  'acc.cushion': 16000,
-  // ===============================
-  // MX / MR パッケージ（価格表）
-  // ===============================
-  "mx.package.std": 194000,
-  "mx.package.m":   213000,
-  "mx.package.a":   247000,
-  "mx.package.h":   297000,
-  "mr.package.std": 233000,
-  "mr.package.m":   252000,
-  "mr.package.a":   286000,
-  "mr.package.h":   336000,
-  // ===============================
-  // NEO パッケージ
-  // ===============================
-  "neo.package.std": 193000,
-  "neo.package.m": 207000,
-  "neo.package.caregiver": 235000,
-  // ===============================
-  // MX / NEO 用 フットレスト加算
-  // ===============================
-  "mx_neo.ft.pj_std": 0,
-  "mx_neo.ft.pipe": 0,
-  "mx_neo.ft.pj_hi": 3000,
-  "mx_neo.ft.ps_hi": 3000,
-  "mx_neo.ft.ps_std": 10000,
-};
-// 塗装プラン定義
-const PAINT_PLANS = [
-  { id: 'standard', name: '標準塗装', priceKey: 'paint.standard' },
-  { id: 'special_1', name: '特別塗装 1色', priceKey: 'paint.special_1' },
-  { id: 'special_2', name: '特別塗装 2色', priceKey: 'paint.special_2' },
-  { id: 'special_3', name: '特別塗装 3色', priceKey: 'paint.special_3' },
-  { id: 'grand', name: 'グランドペイント', priceKey: 'paint.grand' },
-  { id: 'splash', name: 'スプラッシュペイント', priceKey: 'paint.splash' },
-  { id: 'mirror', name: 'ミラーペイント', priceKey: 'paint.mirror' },
-];
-// ===============================
-// カラーマスター
-// ===============================
-const STANDARD_COLORS = [
-  'S-01 ホワイト', 'S-02 ライムグリーン', 'S-03 イエロー', 'S-04 レッド',
-  'S-11 マリンブルー', 'S-12 オレンジ', 'M-01 ブラックメタリック', 'M-02 メタリックグリーン',
-  'M-11 パープル', 'M-24 ファインレッド', 'M-63 シルバー', 'M-64 ダークシルバー'
-];
-const FUSION_STANDARD_COLORS = [
-  'S-11 マリンブルー', 'M-01 ブラックメタリック', 'M-24 ファインレッド'
-];
-const NEO_STANDARD_COLORS = [
-  'M-01 ブラックメタリック', 'M-24 ファインレッド', 'M-65 シリウスシルバー'
-];
-const MX_MR_STANDARD_COLORS = [
-  'S-03 レーシングイエロー', 'S-11 マリンブルー', 'M-01 ブラックメタリック', 
-  'M-11 メタリックパープル', 'M-24 ファインレッド', 'M-65 シリウスシルバー'
-];
-// ===============================
-// タイヤ設定 (IRC / Kenda)
-// ===============================
-const TIRE_COLOR_MASTER = {
-  IRC: {
-    '24インチ': [
-      { name: 'グレー', no: 'No.151', colorCode: '#94a3b8' },
-      { name: 'レッド', no: 'No.153', colorCode: '#ef4444' },
-      { name: 'ブラック', no: 'No.155', colorCode: '#1e293b' }
-    ],
-    default: (size) => {
-      if (size === '22インチ') return { name: 'グレー', no: 'No.131' };
-      if (size === '23インチ') return { name: 'グレー', no: 'No.141' };
-      if (size === '25インチ') return { name: 'グレー', no: 'No.161' };
-      return { name: 'グレー', no: 'No.151' };
-    }
-  },
-  KENDA: {
-    '24インチ': [
-      { name: 'グレー', no: 'No.151', colorCode: '#94a3b8' },
-      { name: 'イエロー', no: 'No.152', colorCode: '#eab308' },
-      { name: 'レッド', no: 'No.153', colorCode: '#ef4444' },
-      { name: 'ブルー', no: 'No.154', colorCode: '#3b82f6' }
-    ],
-    default: (size) => {
-      if (size === '22インチ') return { name: 'グレー', no: 'No.131' };
-      if (size === '23インチ') return { name: 'グレー', no: 'No.141' };
-      if (size === '25インチ') return { name: 'グレー', no: 'No.161' };
-      return { name: 'グレー', no: 'No.151' };
-    }
-  }
-};
-// ===============================
-// ホイールNo.設定 (サイズ連動用)
-// ===============================
-const WHEEL_NO_MASTER = {
-  ds3a: { '24インチ': 'No.251' },
-  ds3z: { '24インチ': 'No.252' },
-  ds3a_n: { '24インチ': 'No.251' },
-  ds3z_n: { '24インチ': 'No.252' },
-  hhr3: { '24インチ': 'No.13' },
-  hhr3_n: { '24インチ': 'No.13' },
-  spn_w: { '24インチ': 'No.351', '25インチ': 'No.361' },
-  spn_b: { '24インチ': 'No.352', '25インチ': 'No.362' },
-  al5: { '23インチ': 'No.74', '24インチ': 'No.75' },
-  al5_n: { '23インチ': 'No.74', '24インチ': 'No.75' },
-  mx4: { '22インチ': 'No.43', '23インチ': 'No.44', '24インチ': 'No.45', '25インチ': 'No.46' },
-  mx4_n: { '22インチ': 'No.43', '23インチ': 'No.44', '24インチ': 'No.45', '25インチ': 'No.46' },
-  kaid: { '22インチ': 'No.63', '23インチ': 'No.64', '24インチ': 'No.65' },
-  kaid_n: { '22インチ': 'No.63', '23インチ': 'No.64', '24インチ': 'No.65' },
-  fixed: { '24インチ': 'No.51' } // 標準 -> No.51 に変更
-};
+// カタログ・マスター: catalog.js / catalog-kids.js / price_master_2025.js / data_ui.js で定義
 const getPrice = (key) => (key && PRICE_MASTER[key] != null ? PRICE_MASTER[key] : 0);
 const itemPrice = (item) => {
   if (!item) return 0;
@@ -195,122 +31,6 @@ const itemPrice = (item) => {
   return item.price || 0;
 };
 const yen = (v) => `¥${(Number(v) || 0).toLocaleString()}`;
-const CASTER_WHEEL_DATA = [
-  { type: '樹脂コア', priceKey: 'caster.resin', sizes: [
-    { label: '92mm',  no: 'No.21' }, { label: '105mm', no: 'No.22' }, { label: '127mm', no: 'No.23' }
-  ]},
-  { type: 'LPC3 (アルミコア)', priceKey: 'caster.lpc3', sizes: [
-    { label: '80mm',  no: 'No.61' }, { label: '95mm',  no: 'No.62' }, { label: '105mm', no: 'No.63' }, { label: '125mm', no: 'No.64' }
-  ]},
-  { type: 'WCR5 (アルミコア)', priceKey: 'caster.wcr5', sizes: [
-    { label: '100mm', no: 'No.41' }, { label: '125mm', no: 'No.42' }
-  ]},
-  { type: 'ワイドキャスター', priceKey: 'caster.wide', sizes: [
-    { label: '100mm', no: 'No.31' }, { label: '125mm', no: 'No.32' }
-  ]},
-  { type: 'クッションキャスター', priceKey: 'caster.cushion', sizes: [
-    { label: '125mm', no: 'No.8' }
-  ]}
-];
-const COMMON_ACCESSORIES = [
-  { id: 'acc_pouch',   name: 'ロールアップポーチ',         no: 'No.1',   priceKey: 'acc.pouch' },
-  { id: 'acc_cv',      name: 'アームレストカバー',         no: 'No.1',   priceKey: 'acc.armcover' },
-  { id: 'acc_bottle',  name: 'ボトルホルダー',             no: 'No.2',   priceKey: 'acc.bottle' },
-  { id: 'acc_pack',    name: 'バックパック',               no: 'No.1',   priceKey: 'acc.backpack' },
-  { id: 'acc_bag_s',    name: 'ユースフルバッグ(小)',       no: 'No.1',   priceKey: 'acc.bag_s' },
-  { id: 'acc_net',     name: '3Dアンダーネット',           no: 'No.1',   priceKey: 'acc.net' },
-  { id: 'acc_suit',    name: 'スーツガード',               no: 'No.1',   priceKey: 'acc.suit' },
-  { id: 'acc_f_cv',    name: 'フレームカバー',             no: 'No.1',   priceKey: 'acc.framecover' },
-  { id: 'acc_belt_a',  name: 'アシストベルト',             no: 'No.1',   priceKey: 'acc.belt_a' },
-  // 分離: エラスティックベルト
-  { id: 'acc_belt_e_s', name: 'エラスティックベルト (S)',    no: 'No.1',   priceKey: 'acc.belt_e.s' },
-  { id: 'acc_belt_e_m', name: 'エラスティックベルト (M)',    no: 'No.2',   priceKey: 'acc.belt_e.m' },
-  { id: 'acc_belt_e_l', name: 'エラスティックベルト (L)',    no: 'No.3',   priceKey: 'acc.belt_e.l' },
-  // 分離: ホールディングベルト
-  { id: 'acc_belt_h_s', name: 'ホールディングベルト (S)',    no: 'No.1',   priceKey: 'acc.belt_h.s' },
-  { id: 'acc_belt_h_m', name: 'ホールディングベルト (M)',    no: 'No.2',   priceKey: 'acc.belt_h.m' },
-  { id: 'acc_belt_h_l', name: 'ホールディングベルト (L)',    no: 'No.3',   priceKey: 'acc.belt_h.l' },
-  { id: 'acc_tool',    name: '工具セット',                 no: 'No.1',   priceKey: 'acc.tool' },
-  { id: 'acc_pump',    name: '充電式空気入れ',             no: 'No.1',   priceKey: 'acc.pump' },
-  { id: 'acc_cushion', name: 'クッション',                 no: 'No.1',   priceKey: 'acc.cushion' },
-];
-const HANDRIM_OPTIONS = [
-  { id: 'hr_alu',   name: 'アルマイト',             no: 'No.11', priceKey: 'handrim.alu' },
-  { id: 'hr_vinyl', name: 'ビニールコーティング',  no: 'No.21', priceKey: 'handrim.vinyl' },
-];
-const WHEEL_SIZE_RULES = {
-  ds3a: ['24インチ'], ds3z: ['24インチ'], hhr3: ['24インチ'], spn_w: ['24インチ', '25インチ'],
-  spn_b: ['24インチ', '25インチ'], al5: ['23インチ', '24インチ'], mx4: ['22インチ', '23インチ', '24インチ', '25インチ'],
-  kaid: ['22インチ', '23インチ', '24インチ'], fixed: ['24インチ'], wire: ['22インチ', '23インチ', '24インチ', '25インチ'],
-  ds3a_n: ['24インチ'], ds3z_n: ['24インチ'], hhr3_n: ['24インチ'], al5_n: ['23インチ', '24インチ'],
-  mx4_n: ['22インチ', '23インチ', '24インチ', '25インチ'], kaid_n: ['22インチ', '23インチ', '24インチ'],
-};
-// ===============================
-// MX / MR / NEO パッケージ選択肢
-// ===============================
-const MX_PACKAGE_OPTIONS = [
-  { id: 'mx_pkg_std', name: 'STD',     no: 'STD', priceKey: 'mx.package.std' },
-  { id: 'mx_pkg_m',   name: 'タイプM', no: 'M',   priceKey: 'mx.package.m' },
-  { id: 'mx_pkg_a',   name: 'タイプA', no: 'A',   priceKey: 'mx.package.a' },
-  { id: 'mx_pkg_h',   name: 'タイプH', no: 'H',   priceKey: 'mx.package.h' },
-];
-const MR_PACKAGE_OPTIONS = [
-  { id: 'mr_pkg_std', name: 'STD',     no: 'STD', priceKey: 'mr.package.std' },
-  { id: 'mr_pkg_m',   name: 'タイプM', no: 'M',   priceKey: 'mr.package.m' },
-  { id: 'mr_pkg_a',   name: 'タイプA', no: 'A',   priceKey: 'mr.package.a' },
-  { id: 'mr_pkg_h',   name: 'タイプH', no: 'H',   priceKey: 'mr.package.h' },
-];
-const NEO_PACKAGE_OPTIONS = [
-  { id: 'neo_pkg_std',      name: 'STD',   no: 'STD', priceKey: 'neo.package.std' },
-  { id: 'neo_pkg_m',        name: 'M',     no: 'M',   priceKey: 'neo.package.m' },
-  { id: 'neo_pkg_caregiver',name: '介助',   no: '介助', priceKey: 'neo.package.caregiver' },
-];
-const GWE_UNIT_DETAIL_MASTER = {
-  jwg1: {
-    unitId: 'jwg1', name: '電動ユニット（JWG-1）', no: 'JWG-1', basePriceKey: 'gwe.jwg1.base',
-    groups: [
-      { key: 'a_speed_wheel', label: 'ⓐ ホイールサイズと最高速度', type: 'single', choices: [{ id: 'a2', name: '37-501（22インチ）最高速度 4.5km/h', no: 'No.2', priceKey: '' }, { id: 'a3', name: '37-540（24インチ）最高速度 4.5km/h', no: 'No.3', priceKey: '' }, { id: 'a4', name: '37-501（22インチ）最高速度 6km/h', no: 'No.4', priceKey: '' }, { id: 'a5', name: '37-540（24インチ）最高速度 6km/h', no: 'No.5', priceKey: '' }] },
-      { key: 'b_clutch', label: 'ⓑ クラッチレバー位置（手動/電動切換）', type: 'single', choices: [{ id: 'b1', name: '右側取付け', no: 'No.1', priceKey: '' }, { id: 'b2', name: '左側取付け', no: 'No.2', priceKey: '' }] },
-      { key: 'c_battery', label: 'ⓒ リチウムイオンバッテリー', type: 'single', choices: [{ id: 'c1', name: 'リチウムイオンバッテリー', no: 'No.1', priceKey: '' }] },
-      { key: 'd_controller_pos', label: 'ⓓ コントローラー位置', type: 'single', choices: [{ id: 'd11', name: 'フレーム右側取付け', no: 'No.11', priceKey: '' }, { id: 'd12', name: 'フレーム左側取付け', no: 'No.12', priceKey: '' }, { id: 'd21', name: 'アームレスト右側取付け', no: 'No.21', priceKey: 'gwe.jwg1.ctrl_arm' }, { id: 'd22', name: 'アームレスト左側取付け', no: 'No.22', priceKey: 'gwe.jwg1.ctrl_arm' }] },
-      { key: 'e_joystick', label: 'ⓔ ジョイスティックタイプ', type: 'single', choices: [{ id: 'e1', name: '標準型', no: 'No.1', priceKey: '' }, { id: 'e2', name: '丸型', no: 'No.2', priceKey: 'gwe.jwg1.joy_7500' }, { id: 'e3', name: 'T型', no: 'No.3', priceKey: 'gwe.jwg1.joy_10500' }, { id: 'e4', name: '細長型', no: 'No.4', priceKey: 'gwe.jwg1.joy_10500' }, { id: 'e5', name: 'コの字型', no: 'No.5', priceKey: 'gwe.jwg1.joy_10500' }, { id: 'e6', name: '細型', no: 'No.6', priceKey: 'gwe.jwg1.joy_7500' }, { id: 'e7', name: 'お椀型', no: 'No.7', priceKey: 'gwe.jwg1.joy_7500' }] },
-      { key: 'f_switch', label: 'ⓕ スイッチ', type: 'single', choices: [{ id: 'f1', name: '押しボタンスイッチ', no: 'No.1', priceKey: '' }, { id: 'f2', name: 'トグルスイッチ', no: 'No.2', priceKey: 'gwe.jwg1.switch_toggle' }] },
-    ],
-  },
-  jwx2: {
-    unitId: 'jwx2', name: '電動アシストユニット（JWX-2）', no: 'JWX-2', basePriceKey: 'gwe.jwx2.base',
-    groups: [
-      { key: 'a_tire_wheel', label: 'ⓐ タイヤ・ホイールサイズ', type: 'single', choices: [{ id: 'a2', name: '標準 37-501（22インチ）', no: 'No.2', priceKey: '' }, { id: 'a3', name: '標準 37-540（24インチ）', no: 'No.3', priceKey: '' }, { id: 'a6', name: 'スポーティ 25-489（22インチ）', no: 'No.6', priceKey: 'gwe.jwx2.sporty' }, { id: 'a7', name: 'スポーティ 25-540（24インチ）', no: 'No.7', priceKey: 'gwe.jwx2.sporty' }] },
-      { key: 'b_battery', label: 'ⓑ バッテリー', type: 'single', choices: [{ id: 'b1', name: 'ニッケル水素バッテリー', no: 'No.1', priceKey: '' }, { id: 'b2', name: 'リチウムイオンバッテリー', no: 'No.2', priceKey: 'gwe.jwx2.batt_li' }] },
-      { key: 'c_handrim_surface', label: 'Ⓒ ハンドリム表面加工', type: 'single', choices: [{ id: 'c1', name: 'ステンレス', no: 'No.1', priceKey: '' }, { id: 'c3', name: 'ビニールコーティング', no: 'No.3', priceKey: 'gwe.jwx2.hr_vinyl' }] },
-      { key: 'd_wheel_mount', label: 'ⓓ ホイール取付タイプ', type: 'single', choices: [{ id: 'd1', name: '固定タイプ', no: 'No.1', priceKey: '' }, { id: 'd2', name: '着脱タイプ', no: 'No.2', priceKey: '' }] },
-      { key: 'e_wheel_cap', label: 'ⓔ ホイールキャップ', type: 'single', choices: [{ id: 'e1', name: '銀ベース 白色', no: 'No.1', priceKey: '' }, { id: 'e2', name: '黒ベース アルミ色', no: 'No.2', priceKey: '' }, { id: 'e3', name: '黒ベース 白色', no: 'No.3', priceKey: '' }] },
-    ],
-  },
-};
-// ===============================
-// 背角度（固定表示用ルール）
-// ===============================
-const BACK_ANGLE_RULES = {
-  GWX3: () => '86°',
-  SX_SR: (frameParts) => {
-    const h = frameParts?.height?.label ?? frameParts?.height ?? '';
-    if (String(h).includes('フラット')) return '90°';
-    return '88°';
-  },
-  MX_MR: () => '86°',
-  GWE: () => '86°',
-  LX_LR: (frameParts) => {
-    const h = frameParts?.height?.label ?? frameParts?.height ?? '';
-    if (String(h).includes('フラット')) return '90°';
-    return '88°';
-  },
-  FX_FR: (frameParts) => {
-    const h = frameParts?.height?.label ?? frameParts?.height ?? '';
-    if (String(h).includes('フラット')) return '90°';
-    return '88°';
-  },
-};
 // トップページ：オーダー / キッズの分岐
 const TopPage = ({ onSelect }) => (
   <div
@@ -323,8 +43,8 @@ const TopPage = ({ onSelect }) => (
     }}
   >
     <style>{`
-      .top-btn-order:hover { background-color: #1a3172 !important; }
-      .top-btn-kids:hover { background-color: #a8360a !important; }
+      .top-btn-order:hover { background-color: #1a3172 !important; border-color: #1a3172 !important; }
+      .top-btn-kids:hover { background-color: #d88421 !important; border-color: #d88421 !important; }
     `}</style>
     <div className="w-full max-w-md space-y-4 flex flex-col items-center">
       <h1 className="text-center font-black text-xl md:text-2xl text-slate-800 tracking-widest uppercase mb-8 drop-shadow-sm">OX Configurator</h1>
@@ -346,10 +66,10 @@ const TopPage = ({ onSelect }) => (
         onClick={() => onSelect('kids')}
         className="top-btn-kids w-56 max-w-full py-6 rounded-2xl font-black text-base shadow-xl border-2 transition-all tracking-[0.2em]"
         style={{
-          backgroundColor: '#C2410C',
-          borderColor: 'rgba(194,65,12,0.6)',
+          backgroundColor: '#f1a254',
+          borderColor: '#f1a254',
           color: '#fff8f0',
-          textShadow: '0 1px 2px rgba(0,0,0,0.25), 0 0 1px rgba(255,255,255,0.08)'
+          textShadow: '0 1px 2px rgba(0, 0, 0, 0.27), 0 0 1px rgba(255,255,255,0.08)'
         }}
       >
         キッズカタログ
@@ -371,8 +91,6 @@ const SelectionGroup = ({ title, items, selectionKey, dynamicNameFn, isInvalid, 
     </div>
   </div>
 );
-const ACCENT_ORDER = { navIcon: 'bg-blue-600', subtotal: 'text-blue-400', confirmBtn: 'bg-green-600 hover:bg-green-700 shadow-green-500/30', sectionBar: 'bg-blue-600', sectionIcon: 'text-blue-600', sectionBorder: 'border-blue-600', sectionBg: 'bg-blue-50', sectionRing: 'ring-blue-600' };
-const ACCENT_KIDS = { navIcon: 'bg-amber-500', subtotal: 'text-amber-400', confirmBtn: 'bg-amber-600 hover:bg-amber-700 shadow-amber-500/30', sectionBar: 'bg-amber-500', sectionIcon: 'text-amber-600', sectionBorder: 'border-amber-500', sectionBg: 'bg-amber-50', sectionRing: 'ring-amber-500' };
 const App = () => {
   const [catalogVariant, setCatalogVariant] = useState(null);
   const [selectedSeries, setSelectedSeries] = useState(null);
@@ -759,8 +477,7 @@ const App = () => {
       setFrameParts(p => ({ ...p, size: next }));
     }
   }, [selectedSeries, selections.baseModel?.id]);
-  // 確定表示前にチェックする必須項目（オプション・アクセサリー・選択肢1つの寸法は除く）
-  const DIMENSION_LABELS = { offset: 'オフセット', h4Type: 'H4 バック高（タイプ）', h4Val: 'H4 バック高（値）', l8: '車軸前後位置 (L8)', lever: 'ブレーキレバー長', w1: '座幅(W1)', l1: '座奥行(L1)', sb: 'バックレスト角(SB)', w2: 'ハンドリム間隔(W2)', cm: 'キャンバー', casterWheel: 'D2 キャスターホイール径', h2: 'H2 前座高', h3: 'H3 後座高' };
+  // 確定表示前にチェックする必須項目（オプション・アクセサリー・選択肢1つの寸法は除く）。DIMENSION_LABELS は data_ui.js
   const missingRequiredItems = useMemo(() => {
     const missing = [];
     if (!selectedSeries || !currentCatalog) return missing;
@@ -833,125 +550,44 @@ const App = () => {
   // MX/MR/NEO / キッズカタログ: ハンドリムはアルマイト標準0円・ビニール+5000円、番号なし
   const handrimOptionsForDisplay = useMemo(() => {
     if (selectedSeries === 'MX_MR' || selectedSeries === 'NEO' || catalogVariant === 'kids') {
-      return HANDRIM_OPTIONS.map(hr => ({
-        ...hr,
-        no: '',
-        price: hr.id === 'hr_vinyl' ? 5000 : 0,
-        priceKey: undefined
-      }));
+      return HANDRIM_OPTIONS.map(hr => {
+        if (hr.id === 'hr_vinyl') {
+          // ビニールコーティングのみ追加料金（マスター参照）
+          return { ...hr, no: '', priceKey: 'handrim.vinyl.mxneo_extra' };
+        }
+        // それ以外は 0 円（priceKey なし）
+        return { ...hr, no: '', priceKey: undefined };
+      });
     }
     return HANDRIM_OPTIONS;
   }, [selectedSeries, catalogVariant]);
   const handrimResolved = useMemo(() => {
     if (!selections.handrim) return null;
     if (selectedSeries === 'MX_MR' || selectedSeries === 'NEO' || catalogVariant === 'kids') {
-      const price = selections.handrim.id === 'hr_vinyl' ? 5000 : 0;
-      return { ...selections.handrim, no: '', price, priceKey: undefined };
+      // 表示用に No. を消すだけ。価格は priceKey から算出
+      return { ...selections.handrim, no: '' };
     }
     return selections.handrim;
   }, [selections.handrim, selectedSeries, catalogVariant]);
-  const totalAmount = useMemo(() => {
-    let sum = 0;
-    // 注意: selections.tire はタイヤ色選択のみで現状価格=0。有料タイヤ追加時は list に含めること
-    const list = [selections.baseModel, selections.package, selections.axleType, selections.casterFork, selections.brake, selections.footrest, selections.wheel, handrimResolved, casterWheelType];
-    list.forEach(item => { if (item) sum += itemPrice(item); });
-    // 塗装価格計算
-    const activePlan = PAINT_PLANS.find(p => p.id === paint.type);
-    if (activePlan) sum += getPrice(activePlan.priceKey);
-    if (selectedSeries === 'COTON' && frameParts.seat?.price) sum += frameParts.seat.price;
-    (selectedOptions || []).forEach(o => sum += itemPrice(o));
-    (selectedAccessories || []).forEach(a => sum += itemPrice(a));
-    if (selectedSeries === 'GWE' && gweUnitDetail?.unitId) {
-      const u = GWE_UNIT_DETAIL_MASTER[gweUnitDetail.unitId];
-      sum += getPrice(u.basePriceKey);
-      Object.values(gweUnitDetail.parts || {}).forEach(p => { if (p) sum += itemPrice(p); });
-    }
-    return sum;
-  }, [selections, handrimResolved, casterWheelType, selectedOptions, selectedAccessories, paint, selectedSeries, gweUnitDetail, frameParts]);
-  const totalLineItems = useMemo(() => {
-    const items = [];
-    const add = (label, item) => { 
-      if (item) {
-        let name = item.name || item.type;
-        if (label === '車軸' && ['LX_LR', 'FX_FR'].includes(selectedSeries)) name = getAxleDisplayName(item);
-        items.push({ label, name, no: item.no, price: itemPrice(item) }); 
-      }
-    };
-    add('本体・機種', selections.baseModel);
-    add('パッケージ', selections.package);
-    // フレーム構成要素の追加（記入No.があるものを個別行として表示）
-    Object.entries(frameParts).forEach(([key, value]) => {
-      if (value && value.no) {
-        let label = "";
-        switch(key) {
-          case 'type': label = 'フレームタイプ'; break;
-          case 'shape': label = (selectedSeries === 'NEO' ? 'フレーム前方形状' : '前方形状'); break;
-          case 'length': label = '長さ'; break;
-          case 'height': label = '高さ'; break;
-          case 'pipe': label = 'フロントパイプ'; break;
-          case 'size': label = 'サイズ'; break;
-          default: label = 'フレーム構成';
-        }
-        items.push({ label, name: value.label, no: value.no, price: 0 });
-      }
-    });
-   add('車軸', selections.axleType);
-// ① キャスターフォーク
-add('キャスターフォーク', selections.casterFork);
-// ② キャスターホイール
-if (casterWheelSize) {
-  items.push({
-    label: 'キャスターホイール',
-    name: `${casterWheelType?.type} ${casterWheelSize.label}`,
-    no: casterWheelSize.no,
-    price: itemPrice(casterWheelType)
-  });
-}
-// ③ フットレスト
-add('フットレスト', selections.footrest);
-// ④ ブレーキ
-add('ブレーキ', selections.brake);
-// ⑤ ホイール
-if (selections.wheel) {
-  items.push({
-    label: 'ホイール',
-    name: selections.wheel.name,
-    no: getWheelNo(selections.wheel, selections.wheelSize),
-    price: selections.wheel.price
-  });
-}
-// ⑥ タイヤ
-if (selections.tire && currentCatalog?.tireBrand) {
-  items.push({
-    label: 'タイヤ',
-    name: `${selections.tire.name} (${currentCatalog.tireBrand})`,
-    no: selections.tire.no,
-    price: 0
-  });
-}
-// ⑦ ハンドリム
-add('ハンドリム', handrimResolved);
-// ⑧ アームレスト（ロー/ハイ・番号・金額をマニュフェストに表示）
-    const armrestOpt = (selectedOptions || []).find(o => o && o.__group === 'ARMREST');
-    if (armrestOpt) {
-      const armName = armrestOpt.note ? `${armrestOpt.name} (${armrestOpt.note})` : armrestOpt.name;
-      items.push({ label: 'アームレスト', name: armName, no: armrestOpt.no || '-', price: armrestOpt.price != null ? armrestOpt.price : itemPrice(armrestOpt) });
-    }
-    const activePlan = PAINT_PLANS.find(p => p.id === paint.type);
-    if (activePlan) items.push({ label: '塗装プラン', name: activePlan.name, no: '塗装', price: getPrice(activePlan.priceKey) });
-    let colorDisplay = paint.type === 'standard' ? (paint.standardColor || '選択') : '';
-    if (paint.type !== 'standard') {
-      const customColors = paint.customColors.filter(c => c.trim() !== '');
-      if (customColors.length > 0) colorDisplay = customColors.join(' / ');
-    }
-    items.push({ label: '塗装色', name: colorDisplay, no: '色', price: 0 });
-    if (selectedSeries === 'GWE' && gweUnitDetail?.unitId) {
-      const u = GWE_UNIT_DETAIL_MASTER[gweUnitDetail.unitId];
-      items.push({ label: '電動ユニット', name: u.name, no: u.no, price: getPrice(u.basePriceKey) });
-      Object.entries(gweUnitDetail.parts || {}).forEach(([gk, p]) => { if (p) items.push({ label: 'ユニット詳細', name: p.name, no: p.no, price: itemPrice(p) }); });
-    }
-    return items;
-  }, [selections, handrimResolved, frameParts, selectedSeries, casterWheelType, casterWheelSize, selectedOptions, selectedAccessories, paint, gweUnitDetail, currentCatalog, getWheelNo, getAxleDisplayName]);
+  const { totalAmount, totalLineItems } = useMemo(() => calcPrice({
+    catalog: currentCatalog,
+    priceMaster: PRICE_MASTER,
+    selections,
+    dims: {
+      selectedSeries,
+      frameParts,
+      paint,
+      gweUnitDetail,
+      selectedOptions,
+      selectedAccessories,
+      casterWheelType,
+      casterWheelSize,
+      handrimResolved,
+      paintPlans: PAINT_PLANS,
+      gweUnitDetailMaster: GWE_UNIT_DETAIL_MASTER,
+      wheelNoMaster: WHEEL_NO_MASTER,
+    },
+  }), [currentCatalog, selections, selectedSeries, frameParts, paint, gweUnitDetail, selectedOptions, selectedAccessories, casterWheelType, casterWheelSize, handrimResolved]);
   const performSeriesReset = useCallback((key) => {
     setSelectedSeries(key);
     setSelections({
@@ -1001,237 +637,25 @@ add('ハンドリム', handrimResolved);
   const isCustomerInfoValid = useMemo(() => {
     return customerInfo.dealerName.trim() !== '' && customerInfo.salesPerson.trim() !== '';
   }, [customerInfo]);
-  // PDF作成機能の実装
+  // PDF作成機能（外部モジュール window.buildPdf を呼び出し）
   const handleDownloadPDF = async () => {
-    try {
-    // jsPDFライブラリの動的読み込み
-    if (!window.jspdf) {
-      const script = document.createElement('script');
-      script.src = "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
-      await new Promise(resolve => {
-        script.onload = resolve;
-        document.head.appendChild(script);
-      });
-    }
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF('p', 'mm', 'a4');
-    // =====================================================
-    // フォント登録（文字化け完全対策 v2）
-    //
-    // 問題の構造:
-    //   NotoSansJP-Regular.js は jsPDF.API.addFileToVFS() でVFS(共有)に追加するが
-    //   getFontList() はインスタンスごとに独立しているため検出できない。
-    //   また index.html では jsPDF より先に NotoSansJP-Regular.js が読まれるため
-    //   window.jspdf が undefined でフォント登録自体がスキップされる。
-    //
-    // 対策:
-    //   Step1: existsFileInVFS() でVFSにデータがあるか確認
-    //          → あれば doc.addFont() をインスタンスに適用 (standalone HTML用)
-    //   Step2: VFSになければ NotoSansJP-Regular.js を再実行
-    //          (jsPDF動的読込後なので今度は成功する)
-    //   Step3: それも失敗なら base64.txt を fetch して登録
-    // =====================================================
-    let fontLoaded = false;
-    // Step1: VFSに既にフォントデータがある場合 (standalone HTML: jsPDF先読み済み)
-    try {
-      if (typeof doc.existsFileInVFS === 'function' && doc.existsFileInVFS("NotoSansJP-Regular.ttf")) {
-        doc.addFont("NotoSansJP-Regular.ttf", "NotoSansJP", "normal");
-        doc.setFont("NotoSansJP", "normal");
-        fontLoaded = true;
-        console.log("[PDF font] Step1: VFSからフォント登録成功");
-      }
-    } catch(e) { console.warn("[PDF font] Step1 error:", e); }
-    // Step2: VFSにない場合 → NotoSansJP-Regular.js スクリプトを再実行
-    //        (jsPDF が今動的読込で初めて使えるようになったタイミング)
-    if (!fontLoaded) {
-      try {
-        await new Promise((resolve, reject) => {
-          const s = document.createElement('script');
-          s.src = "https://ox-na-webtools.github.io/wheelchair-order-app/NotoSansJP-Regular.js";
-          s.onload = resolve;
-          s.onerror = reject;
-          document.head.appendChild(s);
-        });
-        // 再実行後にVFSを確認
-        if (typeof doc.existsFileInVFS === 'function' && doc.existsFileInVFS("NotoSansJP-Regular.ttf")) {
-          doc.addFont("NotoSansJP-Regular.ttf", "NotoSansJP", "normal");
-          doc.setFont("NotoSansJP", "normal");
-          fontLoaded = true;
-          console.log("[PDF font] Step2: NotoSansJP-Regular.js 再実行でフォント登録成功");
-        }
-      } catch(e) { console.warn("[PDF font] Step2 error:", e); }
-    }
-    // Step3: 最終手段 → base64.txt を直接 fetch して登録
-    if (!fontLoaded) {
-      try {
-        const fontRes = await fetch("./NotoSansJP-Regular.base64.txt");
-        if (!fontRes.ok) throw new Error("HTTP " + fontRes.status);
-        const fontBase64 = (await fontRes.text()).trim();
-        doc.addFileToVFS("NotoSansJP-Regular.ttf", fontBase64);
-        doc.addFont("NotoSansJP-Regular.ttf", "NotoSansJP", "normal");
-        doc.setFont("NotoSansJP", "normal");
-        fontLoaded = true;
-        console.log("[PDF font] Step3: base64.txt fetchでフォント登録成功");
-      } catch(e) { console.warn("[PDF font] Step3 error:", e); }
-    }
-    const FONT_NAME = fontLoaded ? "NotoSansJP" : "helvetica";
-    doc.setFont(FONT_NAME, "normal");
-    if (!fontLoaded) {
-      console.error("[PDF font] 全ステップ失敗: デフォルトフォントで出力します（日本語が文字化けします）");
-    }
-    // 設定値
-    const margin = 12; // 余白 12mm
-    const pageWidth = 210;
-    const pageHeight = 297;
-    const contentWidth = pageWidth - (margin * 2);
-    let y = margin;
-    // ヘルパー関数: テキスト描画
-    const addText = (text, x, y, size = 10, style = 'normal', align = 'left') => {
-      doc.setFont(FONT_NAME, "normal");
-      doc.setFontSize(size);
-      if (align === 'right') {
-        doc.text(String(text || ""), x, y, { align: 'right' });
-      } else {
-        doc.text(String(text || ""), x, y);
-      }
-    };
-    // ヘッダー描画
-    const drawHeader = (pageNum) => {
-      doc.setDrawColor(0);
-      doc.setLineWidth(0.5);
-      addText(`OX ENGINEERING ORDER MANIFEST`, margin, margin + 5, 16);
-      addText(`作成日: ${new Date().toISOString().split('T')[0]}  PAGE: ${pageNum}`, pageWidth - margin, margin + 5, 8, 'normal', 'right');
-      doc.line(margin, margin + 8, pageWidth - margin, margin + 8);
-    };
-    // フッター描画（最終ページ固定）
-    const drawFinalFooter = () => {
-      const totalPages = doc.internal.getNumberOfPages();
-      doc.setPage(totalPages);
-      doc.setFontSize(8);
-      doc.setTextColor(100);
-      const footerY = pageHeight - 15;
-      doc.text("本注文書を下記メールアドレスへ送付してください", margin, footerY);
-      doc.text("送付先：〇〇〇〇＠oxxxxx.co.jp", margin, footerY + 5);
-      doc.setTextColor(0);
-    };
-    // ファイル名生成 (作成日_ox_機種_販売店名.pdf)
-    const today = new Date().toISOString().split('T')[0];
-    const seriesName = selectedSeries || "unknown";
-    const dealer = customerInfo.dealerName || "store";
-    const rawFileName = `${today}_ox_${seriesName}_${dealer}.pdf`;
-    const fileName = rawFileName.replace(/[\\/:*?"<>|]/g, ""); // 禁止文字の除去
-    // 1ページ目開始
-    drawHeader(1);
-    y = margin + 20;
-    // 顧客・販売店情報
-    doc.setFillColor(245);
-    doc.rect(margin, y - 5, contentWidth, 15, 'F');
-    addText(`販売店名: ${customerInfo.dealerName}`, margin + 5, y + 2, 10);
-    addText(`担当者名: ${customerInfo.salesPerson}`, margin + 80, y + 2, 10);
-    addText(`ユーザー名: ${customerInfo.userName || "---"}`, margin + 140, y + 2, 10);
-    y += 25;
-    // 仕様明細
-    addText("01. 基本構成・パーツ", margin, y, 11);
-    y += 8;
-    doc.setLineWidth(0.1);
-    totalLineItems.forEach((item) => {
-      // 改ページ判定
-      if (y > pageHeight - 40) {
-        doc.addPage();
-        drawHeader(doc.internal.getNumberOfPages());
-        y = margin + 20;
-      }
-      addText(item.label, margin + 2, y, 9);
-      addText(item.name, margin + 40, y, 9);
-      addText(item.no, margin + 120, y, 9);
-      addText(item.price === 0 ? "込" : yen(item.price), pageWidth - margin - 2, y, 9, 'normal', 'right');
-      doc.setDrawColor(230);
-      doc.line(margin, y + 2, pageWidth - margin, y + 2);
-      doc.setDrawColor(0);
-      y += 6;
-    });
-    // 寸法
-    y += 10;
-    if (y > pageHeight - 50) { doc.addPage(); drawHeader(doc.internal.getNumberOfPages()); y = margin + 20; }
-    addText("02. 指定寸法一覧", margin, y, 11);
-    y += 8;
-    const dimList = Object.entries(dimensions);
-    const dimLabels = { offset: 'オフセット', h4Type: 'H4 バック高（タイプ）', h4Val: 'H4 バック高（値）', l8: '車軸前後位置 (L8)', lever: 'ブレーキレバー長', w1: '座幅(W1)', l1: '座奥行(L1)', sb: 'バックレスト角(SB)', w2: 'ハンドリム間隔(W2)', cm: 'キャンバー', casterWheel: 'D2 キャスターホイール径', h2: 'H2 前座高', h3: 'H3 後座高' };
-    dimList.forEach(([k, v], idx) => {
-      const col = idx % 4;
-      const row = Math.floor(idx / 4);
-      const displayV = (k === 'casterWheel' && currentCatalog?.dimensionRules?.casterWheel?.length && v) ? (currentCatalog.dimensionRules.casterWheel.find(cw => (typeof cw === 'object' ? cw.value : cw) === v)?.label ?? v) : v;
-      addText(`${dimLabels[k] || k.toUpperCase()}: ${displayV}${(k === 'h2' || k === 'h3') && displayV ? 'mm' : (k === 'sb' && displayV) ? '°' : ''}`, margin + (col * 45), y + (row * 6), 9);
-      if (col === 3 || idx === dimList.length - 1) {
-        // 行が終わる際にyを更新（最後の行の計算用）
-        if (idx === dimList.length - 1) y += (row * 6) + 10;
-      }
-    });
-    // オプション（別紙扱いになりやすい項目）
-    const extras = [...selectedOptions, ...selectedAccessories].filter(o => o.__group !== 'ARMREST');
-    if (extras.length > 0) {
-      if (y > pageHeight - 40) { doc.addPage(); drawHeader(doc.internal.getNumberOfPages()); y = margin + 20; }
-      addText("03. オプション & アクセサリー", margin, y, 11);
-      y += 8;
-      extras.forEach(opt => {
-        if (y > pageHeight - 30) {
-          doc.addPage();
-          drawHeader(doc.internal.getNumberOfPages());
-          y = margin + 20;
-        }
-        addText(`[${opt.no}] ${opt.name}`, margin + 2, y, 9);
-        addText(yen(itemPrice(opt)), pageWidth - margin - 2, y, 9, 'normal', 'right');
-        y += 6;
-      });
-    }
-    // 備考
-    if (remarks) {
-      y += 10;
-      if (y > pageHeight - 40) { doc.addPage(); drawHeader(doc.internal.getNumberOfPages()); y = margin + 20; }
-      addText("04. 備考・特記事項", margin, y, 11);
-      y += 8;
-      const splitRemarks = doc.splitTextToSize(remarks, contentWidth - 10);
-      doc.text(splitRemarks, margin + 5, y);
-      y += (splitRemarks.length * 5) + 10;
-    }
-    // 合計金額（最終ページの固定位置付近）
-    y = Math.max(y, pageHeight - 50);
-    doc.setFillColor(30, 41, 59); // Slate-900相当
-    doc.rect(margin, y, contentWidth, 15, 'F');
-    doc.setTextColor(255);
-    addText("合計金額 (概算)", margin + 5, y + 10, 10);
-    addText(yen(totalAmount), pageWidth - margin - 5, y + 10, 14, 'bold', 'right');
-    // フッター描画
-    drawFinalFooter();
-    // 出力（スマホ・タブレットでは共有シートでメール送信などを可能に）
-    const blob = doc.output("blob");
-    const file = new File([blob], fileName, { type: "application/pdf" });
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
-    // ① スマホのみ：共有API対応なら共有シートを表示（メール・保存などが選べる）
-    if (isMobile && typeof navigator.canShare === "function" && navigator.canShare({ files: [file] })) {
-      try {
-        await navigator.share({
-          files: [file],
-          title: fileName,
-        });
-        return;
-      } catch (e) {
-        if (e.name !== "AbortError") { /* ユーザーキャンセル以外は下へ */ }
-      }
-    }
-    // ② スマホで共有が使えない/キャンセル時は新しいタブでPDFを表示（そこから共有→メールなど）
-    if (isMobile) {
-      const url = URL.createObjectURL(blob);
-      window.open(url, "_blank");
-      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    if (typeof window.buildPdf !== 'function') {
+      alert('PDF生成機能が利用できません。ページを再読み込みしてから再度お試しください。');
       return;
     }
-    // ③ PCなどは従来どおりダウンロード
-    doc.save(fileName);
-    } catch (pdfErr) {
-      console.error("PDF生成中にエラーが発生しました:", pdfErr);
-      alert("PDF生成に失敗しました。ページを再読み込みしてから再度お試しください。");
-    }
+    await window.buildPdf({
+      selectedSeries,
+      customerInfo,
+      totalLineItems,
+      dimensions,
+      currentCatalog,
+      selectedOptions,
+      selectedAccessories,
+      itemPrice,
+      remarks,
+      totalAmount,
+      yen,
+    });
   };
   // =====================================================
   // CSV出力機能（転記用MANIFEST）
@@ -1272,18 +696,12 @@ add('ハンドリム', handrimResolved);
     rows.push(["【03. 指定寸法一覧】"]);
     rows.push(["項目", "値", "単位"]);
     rows.push(["ホイールサイズ", selections.wheelSize || "", ""]);
-    const DIMENSION_LABELS_CSV = {
-      offset: 'オフセット', h4Type: 'H4 バック高（タイプ）', h4Val: 'H4 バック高（値）',
-      l8: '車軸前後位置 (L8)', lever: 'ブレーキレバー長', w1: '座幅(W1)',
-      l1: '座奥行(L1)', sb: 'バックレスト角(SB)', w2: 'ハンドリム間隔(W2)', cm: 'キャンバー',
-      casterWheel: 'D2 キャスターホイール径', h2: 'H2 前座高', h3: 'H3 後座高'
-    };
     const catalogForCsv = catalog && selectedSeries ? catalog[selectedSeries] : null;
     Object.entries(dimensions).forEach(([k, v]) => {
       if (v !== '' && v !== null && v !== undefined) {
         const displayV = (k === 'casterWheel' && catalogForCsv?.dimensionRules?.casterWheel?.length) ? (catalogForCsv.dimensionRules.casterWheel.find(cw => (typeof cw === 'object' ? cw.value : cw) === v)?.label ?? v) : v;
         const unit = k === 'sb' ? '°' : (k === 'casterWheel' ? '' : (isNaN(v) ? '' : 'mm'));
-        rows.push([DIMENSION_LABELS_CSV[k] || k, displayV, unit]);
+        rows.push([DIMENSION_LABELS[k] || k, displayV, unit]);
       }
     });
     rows.push([]);
