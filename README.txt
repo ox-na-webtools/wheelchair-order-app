@@ -19,7 +19,8 @@ OX Configurator — HTML版の使い方
 3. 表示
    - index.html をブラウザで開いてください。
    - 機種選択・仕様入力・確定表示・PDF作成まで
-     元の React アプリと同じように使えます。
+     元の React アプリと同じように使えます。　　
 
 ※ CDN で React / Babel / Tailwind / jsPDF を読み込むため、
-  初回表示時はインターネット接続が必要です。
+  初回表示時はインターネット接続が必要です。　　
+
