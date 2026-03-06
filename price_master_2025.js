@@ -1,6 +1,31 @@
 // =========================
 // 価格マスター（2025）
 // =========================
+
+// ===============================
+// 共通アクセサリー価格（全機種共通・価格改定はここだけ編集）
+// ===============================
+const COMMON_ACCESSORY_PRICES = {
+  'acc.pouch': 2600,
+  'acc.armcover': 4800,
+  'acc.bottle': 2200,
+  'acc.backpack': 8000,
+  'acc.bag_s': 7400,
+  'acc.net': 5500,
+  'acc.suit': 6200,
+  'acc.framecover': 4000,
+  'acc.belt_a': 5200,
+  'acc.belt_e.s': 5500,
+  'acc.belt_e.m': 6000,
+  'acc.belt_e.l': 6500,
+  'acc.belt_h.s': 2400,
+  'acc.belt_h.m': 2600,
+  'acc.belt_h.l': 2800,
+  'acc.tool': 1400,
+  'acc.pump': 24200,
+  'acc.cushion': 16000,
+};
+
 const PRICE_MASTER_2025 = {
   // --- GW-E ユニット本体 ---
   'gwe.jwg1.base': 446000,
@@ -15,6 +40,7 @@ const PRICE_MASTER_2025 = {
   // 塗装プラン価格
   'paint.standard': 0,
   'paint.special_1': 10000,
+  'paint.special_1_kids': 0,   // キッズ(コトン以外) 1色塗装は全色無料
   'paint.special_2': 18000,
   'paint.special_3': 24000,
   'paint.grand': 18000,
@@ -35,29 +61,12 @@ const PRICE_MASTER_2025 = {
   // ハンドリム
   'handrim.alu': 13000,
   'handrim.vinyl': 18000,
-  // MX/MR・NEO・キッズ用 ビニールコーティング追加料金
+  // MX/MR・NEO用 ビニールコーティング追加料金
   'handrim.vinyl.mxneo_extra': 5000,
-  // アクセサリー
-  'acc.pouch': 2600,
-  'acc.armcover': 4800,
-  'acc.bottle': 2200,
-  'acc.backpack': 8000,
-  'acc.bag_s': 7400,
-  'acc.net': 5500,
-  'acc.suit': 6200,
-  'acc.framecover': 4000,
-  'acc.belt_a': 5200,
-  // エラスティックベルト価格 (S, M, L)
-  'acc.belt_e.s': 5500,
-  'acc.belt_e.m': 6000,
-  'acc.belt_e.l': 6500,
-  // ホールディングベルト価格 (S, M, L)
-  'acc.belt_h.s': 2400,
-  'acc.belt_h.m': 2600,
-  'acc.belt_h.l': 2800,
-  'acc.tool': 1400,
-  'acc.pump': 24200,
-  'acc.cushion': 16000,
+  // キッズカタログ全機種 ビニールコーティング追加料金
+  'handrim.vinyl.kids_extra': 3000,
+  // アクセサリー（全機種共通 → COMMON_ACCESSORY_PRICES を参照）
+  ...COMMON_ACCESSORY_PRICES,
   // ===============================
   // MX / MR パッケージ（価格表）
   // ===============================
@@ -383,13 +392,16 @@ const PRICE_MASTER_2025 = {
   "kids.option.opt_flip_arm": 6000,
   "kids.option.opt_grip": 5000,
   "kids.option.opt_push": 13000,
+  "kids.option.opt_push_slide": 32000,
+  "kids.option.opt_arm_toddler": 21000,
+  "kids.option.opt_flip_arm_toddler": 27000,
+  "kids.option.opt_fender_l": 14000,
   "kids.option.opt_wheelie": 16000,
   "kids.option.opt_fender": 10000,
   "kids.option.opt_cushion_tbl": 17000,
   "kids.option.opt_clear_tbl": 23000,
   "kids.option.opt_foot_br": 16000,
   "kids.option.opt_kaid_wheel": 21000,
-  "kids.option.opt_push_slide": 19000,
   "kids.option.opt_band_br": 16000,
   "kids.option.opt_joystick": 7500,
   "kids.option.opt_battery_li": 63000,
