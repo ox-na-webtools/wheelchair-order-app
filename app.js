@@ -1,4 +1,7 @@
 import { calcPrice } from './src/lib/pricing.js';
+import { getArmrestConfig, filterOptionsForSpecialSection } from './src/lib/option_rules.js';
+import { toggleItem, upsertArmrestOption, computeArmrestOption, createSetPush, createSetWheelie, createSetFender, createSetCushionTbl } from './src/lib/option_selectors.js';
+import { SpecialOptionsSection } from './src/lib/sections/special_options.js';
 const { useState, useMemo, useEffect, useCallback } = React;
 function Icon({ size = 24, className = '', children }) {
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>{children}</svg>;
@@ -23,6 +26,7 @@ const ExternalLink = (p) => <Icon {...p}><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 
 const User = (p) => <Icon {...p}><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></Icon>;
 const Store = (p) => <Icon {...p}><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><path d="M9 22V12h6v10"/></Icon>;
 const UserCheck = (p) => <Icon {...p}><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8l2 2-4 4-2-2 2-2"/></Icon>;
+const ArrowUp = (p) => <Icon {...p}><path d="M12 19V5M5 12l7-7 7 7"/></Icon>;
 // カタログ・マスター: catalog.js / catalog-kids.js / price_master_2025.js / data_ui.js で定義
 // 価格ロジックは calc.js 側の関数を優先的に利用し、未ロード時のみ従来ロジックにフォールバックする
 const getPrice = (key) => {
@@ -288,94 +292,11 @@ const App = () => {
     if (selections.axleType?.id === 'axle_b') return ['0'];
     return currentCatalog?.dimensionRules?.camber || ['0'];
   }, [selections.axleType, currentCatalog]);
-  const armrestConfig = useMemo(() => {
-    if (!currentCatalog?.options) return { arm: null, flip: null };
-    const dr = currentCatalog.dimensionRules;
-    if (selectedSeries === 'COTON' && dr?.armrestAhByType) {
-      const by = dr.armrestAhByType;
-      const arm = {
-        low:  { id: 'coton_arm_low',  baseId: 'coton_arm', name: 'アームレスト ロー',   no: '-', price: 0, ah: (by['ロー'] || []).map(Number) },
-        mid:  { id: 'coton_arm_mid',  baseId: 'coton_arm', name: 'アームレスト ミディアム', no: '-', price: 0, ah: (by['ミディアム'] || []).map(Number) },
-        high: { id: 'coton_arm_high', baseId: 'coton_arm', name: 'アームレスト ハイ',  no: '-', price: 0, ah: (by['ハイ'] || []).map(Number) },
-      };
-      return { arm, flip: null };
-    }
-    const findById = (id) => currentCatalog.options.find(o => o.id === id);
-    const findByNameIncludes = (kw) => currentCatalog.options.find(o => (o.name || '').includes(kw));
-    const zzrLow = findById('opt_arm_l');
-    const zzrHigh = findById('opt_arm_h');
-    let armBase, flipBase;
-    if (catalogVariant === 'kids') {
-      const isKidsOrJrSchool = (selectedSeries === 'MINI_NEO_KIDS' && selections.baseModel?.id === 'kids_school') || (selectedSeries === 'MINI_NEO_JUNIOR' && selections.baseModel?.id === 'jr_school');
-      const isAKidsOrAJr = selectedSeries === 'MINI_NEO_A_KIDS' || selectedSeries === 'MINI_NEO_A_JUNIOR';
-      const isKidsOrJr = selectedSeries === 'MINI_NEO_KIDS' || selectedSeries === 'MINI_NEO_JUNIOR';
-      const isToddler = selectedSeries === 'MINI_NEO_TODDLER';
-      armBase = (isKidsOrJrSchool || isAKidsOrAJr || isKidsOrJr || isToddler) ? findById('opt_arm_std') : null;
-      flipBase = findById('opt_flip_arm');
-    } else {
-      armBase = (selectedSeries === 'MX_MR') ? (selections.baseModel?.id === 'mr_base' ? findById('opt_arm_mr') : null) || findById('opt_arm') || findByNameIncludes('アームレスト') : findById('opt_arm') || findById('opt_arm_ln') || findByNameIncludes('アームレスト');
-      flipBase = findById('opt_flip') || findByNameIncludes('はね上げ式アームレスト');
-    }
-    const buildFromCombined = (obj, baseName) => {
-      if (!obj) return null;
-      const m = (obj.no || '').split('/');
-      const no = { low: m[0]?.trim() || obj.no, mid: m[0]?.trim() || obj.no, high: m[1]?.trim() || obj.no };
-      const hLabel = frameParts?.height?.label ?? frameParts?.height ?? '';
-      const hs = String(hLabel);
-      const hk = hs.includes('フラット') ? 'フラット' : hs.includes('ハイ') ? 'ハイ' : 'レギュラー';
-      const lowAh = (obj.ahLowByHeight && obj.ahLowByHeight[hk]) || (Array.isArray(obj.ahLow) ? obj.ahLow : (Array.isArray(obj.ah) ? obj.ah : []));
-      const midAh = (Array.isArray(obj.ahMid) ? obj.ahMid : []);
-      const highAh = (obj.ahHighByHeight && obj.ahHighByHeight[hk]) || (Array.isArray(obj.ahHigh) ? obj.ahHigh : (Array.isArray(obj.ah) ? obj.ah : []));
-      const result = {
-        low:  lowAh.length  ? { id: `${obj.id}__low__armgrp`,  baseId: obj.id, name: `${baseName} ロー`,  no: no.low,  price: obj.price || 0, ah: lowAh } : null,
-        mid:  midAh.length  ? { id: `${obj.id}__mid__armgrp`,  baseId: obj.id, name: `${baseName} ミディアム`, no: no.mid,  price: obj.price || 0, ah: midAh } : null,
-        high: highAh.length ? { id: `${obj.id}__high__armgrp`, baseId: obj.id, name: `${baseName} ハイ`, no: no.high, price: obj.price || 0, ah: highAh } : null,
-      };
-      return result;
-    };
-    let arm, flip;
-    if (zzrLow || zzrHigh) {
-      arm = { low: zzrLow ? { ...zzrLow, baseId: zzrLow.id, name: 'アームレスト ロー' } : null, high: zzrHigh ? { ...zzrHigh, baseId: zzrHigh.id, name: 'アームレスト ハイ' } : null };
-      flip = buildFromCombined(flipBase, 'はね上げ式アームレスト');
-    } else {
-      arm = buildFromCombined(armBase, 'アームレスト');
-      flip = buildFromCombined(flipBase, 'はね上げ式アームレスト');
-    }
-    return { arm, flip, armrestLengths: dr?.armrestLengths || null };
-  }, [currentCatalog, frameParts.height, selectedSeries, selections.baseModel?.id, catalogVariant]);
-  const upsertArmrestOption = useCallback((next) => {
-    setSelectedOptions(prev => {
-      const removed = prev.filter(o => !(o && o.__group === 'ARMREST'));
-      return next ? [...removed, next] : removed;
-    });
-  }, []);
+  const armrestConfig = useMemo(() => getArmrestConfig(currentCatalog, frameParts, selectedSeries, selections.baseModel?.id, catalogVariant), [currentCatalog, frameParts.height, selectedSeries, selections.baseModel?.id, catalogVariant]);
   useEffect(() => {
-    if (!armrestSel.kind || !armrestSel.lh || !armrestSel.ah) { upsertArmrestOption(null); return; }
-    const needsAl = armrestConfig.armrestLengths?.length && (selectedSeries === 'MINI_NEO_KIDS' || selectedSeries === 'MINI_NEO_JUNIOR');
-    if (needsAl && !armrestSel.al) { upsertArmrestOption(null); return; }
-    const group = armrestSel.kind === 'arm' ? armrestConfig.arm : armrestConfig.flip;
-    const base = armrestSel.lh === 'ロー' ? group?.low : armrestSel.lh === 'ミディアム' ? group?.mid : group?.high;
-    if (!base) { upsertArmrestOption(null); return; }
-    let calculatedPrice = base.price || 0;
-    const isStandardZeroSeries = (selectedSeries === 'NEO' || selectedSeries === 'GWE' || selectedSeries === 'COTON' || (selectedSeries === 'MX_MR' && selections.baseModel?.id === 'mx_base'));
-    const isKidsArmrestSeries = catalogVariant === 'kids' && ['MINI_NEO_KIDS', 'MINI_NEO_JUNIOR', 'MINI_NEO_A_KIDS', 'MINI_NEO_A_JUNIOR'].includes(selectedSeries);
-    if (selectedSeries === 'MINI_NEO_TODDLER') {
-      calculatedPrice = base.price ?? 0;
-    } else if (isStandardZeroSeries) {
-      calculatedPrice = (selectedSeries === 'COTON' || armrestSel.kind === 'arm') ? 0 : 6000;
-    } else if (isKidsArmrestSeries) {
-      const isKidsOrJrSchool = (selectedSeries === 'MINI_NEO_KIDS' && selections.baseModel?.id === 'kids_school') || (selectedSeries === 'MINI_NEO_JUNIOR' && selections.baseModel?.id === 'jr_school');
-      calculatedPrice = armrestSel.kind === 'arm' ? (isKidsOrJrSchool ? 0 : 22000) : 6000;
-    } else if (selectedSeries === 'MX_MR' && selections.baseModel?.id === 'mr_base') {
-      calculatedPrice = armrestSel.kind === 'arm' ? 22000 : 28000;
-    }
-    let note = `アームレスト高 ${armrestSel.ah}mm`;
-    if (needsAl && armrestSel.al) {
-      const alObj = armrestConfig.armrestLengths.find(a => a.no === armrestSel.al || a.label === armrestSel.al);
-      if (alObj) note += ` / AL: ${alObj.label} (${alObj.no})`;
-    }
-    upsertArmrestOption({ id: `${base.id}__${armrestSel.ah}${armrestSel.al ? `_al_${armrestSel.al}` : ''}`, name: base.name, no: base.no, price: calculatedPrice, note, __group: 'ARMREST' });
-  }, [armrestSel, armrestConfig, upsertArmrestOption, selectedSeries, selections.baseModel, catalogVariant]);
+    const next = computeArmrestOption(armrestSel, armrestConfig, selectedSeries, selections.baseModel, catalogVariant);
+    upsertArmrestOption(next, setSelectedOptions);
+  }, [armrestSel, armrestConfig, selectedSeries, selections.baseModel, catalogVariant]);
   // COTON / ミニネオAキッズ・エージュニア: アームレスト標準のため最初から「アームレスト」を選択状態にする
   // ミニネオキッズ・ジュニア スクール: 標準アーム＋高低を同時にセット（高低だけ遅れると高さが選べない不具合を防ぐ）
   useEffect(() => {
@@ -397,6 +318,16 @@ const App = () => {
     if (selectedSeries === 'MINI_NEO_KIDS' && (group?.low || group?.high) && !armrestSel.lh) setArmrestSel(s => ({ ...s, lh: 'ロー' }));
     if (selectedSeries === 'MINI_NEO_JUNIOR' && (group?.low || group?.high) && !armrestSel.lh) setArmrestSel(s => ({ ...s, lh: 'ハイ' }));
   }, [catalogVariant, selectedSeries, armrestConfig.arm, armrestConfig.flip, armrestSel.kind, armrestSel.lh, selections.baseModel?.id]);
+  const optionsForGrid = useMemo(() => filterOptionsForSpecialSection(currentCatalog?.options || [], { selectedSeries, catalogVariant, selections }), [currentCatalog?.options, selectedSeries, catalogVariant, selections]);
+  const kidsOptionHandlers = useMemo(() => {
+    const opts = currentCatalog?.options || [];
+    return {
+      setPush: createSetPush(setSelectedOptions, opts.find(o => o.id === 'opt_push_fixed'), opts.find(o => o.id === 'opt_push_slide')),
+      setWheelie: createSetWheelie(setSelectedOptions, opts.find(o => o.id === 'opt_wheelie_fixed'), opts.find(o => o.id === 'opt_wheelie_fold')),
+      setFender: createSetFender(setSelectedOptions, opts.find(o => o.id === 'opt_fender_s'), opts.find(o => o.id === 'opt_fender_l')),
+      setCushionTbl: createSetCushionTbl(setSelectedOptions, opts.find(o => o.id === 'opt_cushion_tbl_white'), opts.find(o => o.id === 'opt_cushion_tbl_blue'), opts.find(o => o.id === 'opt_cushion_tbl_pink')),
+    };
+  }, [setSelectedOptions, currentCatalog?.options]);
   const [isConfirmed, setIsConfirmed] = useState(false);
   const [showConfirmReset, setShowConfirmReset] = useState(null);
   const [showFullResetConfirm, setShowFullResetConfirm] = useState(false);
@@ -681,10 +612,6 @@ const App = () => {
   const handleSeriesSelect = (key) => {
     if (selectedSeries && selectedSeries !== key) setShowConfirmReset(key);
     else performSeriesReset(key);
-  };
-  const toggleItem = (item, list, setList) => {
-    if (list.find(i => i.id === item.id)) setList(list.filter(i => i.id !== item.id));
-    else setList([...list, item]);
   };
   const handleCustomColorChange = (index, val) => {
     const nextColors = [...paint.customColors];
@@ -992,23 +919,15 @@ const App = () => {
       )}
       <nav className="bg-slate-900 text-white p-5 fixed top-0 inset-x-0 z-50 shadow-xl border-b border-white/5">
         <div className="max-w-7xl mx-auto flex justify-between items-center gap-2 min-w-0">
-          <div className="flex items-center gap-3">
-            <div className={`${accent.navIcon} p-2.5 rounded-xl`}><Settings size={20} /></div>
-            <div>
-              <h1 className="font-black text-base md:text-lg leading-none uppercase tracking-widest">Configurator</h1>
+          <div className="flex items-center gap-3 min-w-0 shrink">
+            <div className={`${accent.navIcon} p-2.5 rounded-xl shrink-0`}><Settings size={20} /></div>
+            <div className="min-w-0">
+              <h1 className="font-black text-base md:text-lg leading-none uppercase tracking-widest truncate">Configurator</h1>
               <p className="text-[11px] opacity-60 uppercase tracking-[0.3em] mt-1 font-bold">2025 v5.9 Stable</p>
             </div>
-            <button
-              type="button"
-              onClick={() => { handleFullReset(); setCatalogVariant(null); }}
-              className="text-[10px] font-bold uppercase tracking-widest text-white/70 hover:text-white bg-white/5 hover:bg-white/10 px-3 py-2 rounded-xl transition-all border border-white/10"
-              title="トップページに戻る"
-            >
-              トップへ
-            </button>
           </div>
-          <div className="flex items-center gap-6 min-w-0 flex-1 justify-end">
-            <div className="flex flex-col text-right min-w-0 shrink-0">
+          <div className="flex items-center gap-6 min-w-0 flex-1 justify-end shrink-0">
+            <div className="flex flex-col text-right min-w-0">
               <span className={`text-xs font-bold ${accent.subtotal} uppercase mb-1 leading-none`}>Subtotal</span>
               <span className={`text-lg md:text-2xl font-black font-mono tracking-tighter ${accent.subtotal} leading-none`}>¥{totalAmount.toLocaleString()}</span>
               {showMissingRequired.length > 0 && (
@@ -1018,6 +937,31 @@ const App = () => {
           </div>
         </div>
       </nav>
+      {/* Home（トップ画面）と Top（画面一番上）: 黒帯から出たフロートでスマホでも Subtotal と重ならない */}
+      <div
+        className="fixed left-3 z-50 flex items-center gap-1.5 rounded-b-xl bg-slate-900 text-white shadow-lg border border-t-0 border-white/10 no-print"
+        style={{ top: '5.75rem' }}
+        aria-label="ナビゲーション"
+      >
+        <button
+          type="button"
+          onClick={() => { handleFullReset(); setCatalogVariant(null); }}
+          className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-white/70 hover:text-white bg-white/5 hover:bg-white/10 px-2.5 py-2.5 rounded-lg transition-all border border-white/10"
+          title="トップ画面に戻る"
+        >
+          <Store size={14} />
+          <span className="hidden sm:inline">Home</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-white/70 hover:text-white bg-white/5 hover:bg-white/10 px-2.5 py-2.5 rounded-lg transition-all border border-white/10"
+          title="画面の一番上へ"
+        >
+          <ArrowUp size={14} />
+          <span className="hidden sm:inline">Top</span>
+        </button>
+      </div>
       {/* 確認ボタン: 右下に常時固定（スマホで押しやすく「確認」のみ表示） */}
       {!isConfirmed && (
         <div
@@ -1051,7 +995,8 @@ const App = () => {
           </button>
         </div>
       )}
-      <div className="h-[92px]" />
+      {/* ナビ高さ + Home/Top フロート分の余白で「1. 機種シリーズ選択」にかぶらない */}
+      <div className="h-[140px]" />
       <main className="max-w-7xl mx-auto p-3 sm:p-4 md:p-8">
         {!isConfirmed ? (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
@@ -1531,118 +1476,29 @@ const App = () => {
                       </div>
                     </div>
                   </div>
-                  <div className="bg-white rounded-[2rem] shadow-sm border border-slate-200 p-8 mb-6 relative font-bold">
-                    <h3 className="text-xl font-black mb-8 flex items-center gap-3 tracking-widest uppercase"><Settings size={24} className="text-blue-600" /> 4. 専用オプション</h3>
-                    {Object.values(armrestConfig).some(v => v) && (
-                      <div className={`border-2 rounded-2xl p-5 mb-6 grid grid-cols-1 md:grid-cols-3 gap-3 ${showMissingRequired.includes('アームレスト（高低・高さ）') || showMissingRequired.includes('アームレスト長') ? 'border-red-500 bg-red-50' : 'bg-slate-50 border border-slate-200'} ${armrestConfig.armrestLengths?.length ? 'md:grid-cols-4' : ''}`}>
-                        <select className="bg-white border rounded-xl p-3 text-sm font-bold outline-none" value={armrestSel.kind} onChange={e => setArmrestSel({ kind: e.target.value, lh: '', ah: '', al: '' })}>
-                          {!(selectedSeries === 'NEO' || selectedSeries === 'GWE' || selectedSeries === 'COTON' || (selectedSeries === 'MX_MR' && selections.baseModel?.id === 'mx_base') || (catalogVariant === 'kids' && ((selectedSeries === 'MINI_NEO_KIDS' && selections.baseModel?.id === 'kids_school') || (selectedSeries === 'MINI_NEO_JUNIOR' && selections.baseModel?.id === 'jr_school') || selectedSeries === 'MINI_NEO_A_KIDS' || selectedSeries === 'MINI_NEO_A_JUNIOR'))) && <option value="">アームレストなし</option>}
-                          {armrestConfig.arm && <option value="arm">アームレスト {(selectedSeries === 'NEO' || selectedSeries === 'GWE' || selectedSeries === 'COTON' || (selectedSeries === 'MX_MR' && selections.baseModel?.id === 'mx_base') || (catalogVariant === 'kids' && ((selectedSeries === 'MINI_NEO_KIDS' && selections.baseModel?.id === 'kids_school') || (selectedSeries === 'MINI_NEO_JUNIOR' && selections.baseModel?.id === 'jr_school') || selectedSeries === 'MINI_NEO_A_KIDS' || selectedSeries === 'MINI_NEO_A_JUNIOR'))) ? '(標準 込)' : (selectedSeries === 'MINI_NEO_TODDLER' ? '(+¥21,000)' : '(+¥22,000)')}</option>}
-                          {armrestConfig.flip && <option value="flip">はね上げ式 {(selectedSeries === 'NEO' || (selectedSeries === 'MX_MR' && selections.baseModel?.id === 'mx_base') || (catalogVariant === 'kids' && ['MINI_NEO_KIDS', 'MINI_NEO_JUNIOR', 'MINI_NEO_A_KIDS', 'MINI_NEO_A_JUNIOR'].includes(selectedSeries))) ? '(+¥6,000)' : (selectedSeries === 'MINI_NEO_TODDLER' ? '(+¥27,000)' : '(+¥28,000)')}</option>}
-                        </select>
-                        <select className="bg-white border rounded-xl p-3 text-sm font-bold outline-none disabled:opacity-20" value={armrestSel.lh} disabled={!armrestSel.kind} onChange={e => setArmrestSel(s => ({ ...s, lh: e.target.value, ah: '' }))}><option value="">-- 高低 --</option>{((armrestSel.kind === 'arm' ? armrestConfig.arm : armrestConfig.flip) || {})?.low && <option value="ロー">ロー</option>}{((armrestSel.kind === 'arm' ? armrestConfig.arm : armrestConfig.flip) || {})?.mid && <option value="ミディアム">ミディアム</option>}{((armrestSel.kind === 'arm' ? armrestConfig.arm : armrestConfig.flip) || {})?.high && <option value="ハイ">ハイ</option>}</select>
-                        <select className="bg-white border rounded-xl p-3 text-sm font-bold outline-none disabled:opacity-20" value={armrestSel.ah} disabled={!armrestSel.kind || !armrestSel.lh} onChange={e => setArmrestSel(s => ({ ...s, ah: e.target.value }))}><option value="">-- 高さ --</option>{((armrestSel.lh === 'ロー' ? (armrestSel.kind === 'arm' ? armrestConfig.arm?.low : armrestConfig.flip?.low) : armrestSel.lh === 'ミディアム' ? (armrestSel.kind === 'arm' ? armrestConfig.arm?.mid : armrestConfig.flip?.mid) : (armrestSel.kind === 'arm' ? armrestConfig.arm?.high : armrestConfig.flip?.high))?.ah || []).map(v => <option key={v} value={v}>{v}mm</option>)}</select>
-                        {armrestConfig.armrestLengths?.length && (selectedSeries === 'MINI_NEO_KIDS' || selectedSeries === 'MINI_NEO_JUNIOR') && (
-                          <select className="bg-white border rounded-xl p-3 text-sm font-bold outline-none disabled:opacity-20" value={armrestSel.al} disabled={!armrestSel.kind} onChange={e => setArmrestSel(s => ({ ...s, al: e.target.value }))}><option value="">-- アームレスト長 --</option>{armrestConfig.armrestLengths.map(al => <option key={al.no} value={al.no}>{al.label} ({al.no})</option>)}</select>
-                        )}
-                      </div>
-                    )}
-                    {(selectedSeries === 'MINI_NEO_KIDS' || selectedSeries === 'MINI_NEO_JUNIOR') && (() => {
-                      const opts = currentCatalog.options || [];
-                      const pushFixed = opts.find(o => o.id === 'opt_push_fixed');
-                      const pushSlide = opts.find(o => o.id === 'opt_push_slide');
-                      const wheelieFixed = opts.find(o => o.id === 'opt_wheelie_fixed');
-                      const wheelieFold = opts.find(o => o.id === 'opt_wheelie_fold');
-                      const fenderS = opts.find(o => o.id === 'opt_fender_s');
-                      const fenderL = opts.find(o => o.id === 'opt_fender_l');
-                      const pkgId = selections.baseModel?.id;
-                      const isSchool = pkgId === 'kids_school' || pkgId === 'jr_school';
-                      const isEnjoy = pkgId === 'kids_enjoy' || pkgId === 'jr_enjoy';
-                      const hasGrip = (selectedOptions || []).some(o => o && o.id === 'opt_grip');
-                      const pushVal = selectedOptions.find(o => o?.id === 'opt_push_fixed') ? 'opt_push_fixed' : (selectedOptions.find(o => o?.id === 'opt_push_slide') ? 'opt_push_slide' : '');
-                      const pushDropdownDisabled = isEnjoy && hasGrip;
-                      const wheelieVal = selectedOptions.find(o => o?.id === 'opt_wheelie_fixed') ? 'opt_wheelie_fixed' : (selectedOptions.find(o => o?.id === 'opt_wheelie_fold') ? 'opt_wheelie_fold' : '');
-                      const fenderVal = selectedOptions.find(o => o?.id === 'opt_fender_s') ? 'opt_fender_s' : (selectedOptions.find(o => o?.id === 'opt_fender_l') ? 'opt_fender_l' : '');
-                      const cushionWhite = opts.find(o => o.id === 'opt_cushion_tbl_white');
-                      const cushionBlue = opts.find(o => o.id === 'opt_cushion_tbl_blue');
-                      const cushionPink = opts.find(o => o.id === 'opt_cushion_tbl_pink');
-                      const cushionVal = selectedOptions.find(o => o?.id === 'opt_cushion_tbl_white') ? 'opt_cushion_tbl_white' : (selectedOptions.find(o => o?.id === 'opt_cushion_tbl_blue') ? 'opt_cushion_tbl_blue' : (selectedOptions.find(o => o?.id === 'opt_cushion_tbl_pink') ? 'opt_cushion_tbl_pink' : ''));
-                      const setPush = (v) => { setSelectedOptions(prev => { let n = (prev || []).filter(o => o && o.id !== 'opt_push_fixed' && o.id !== 'opt_push_slide'); if (v === 'opt_push_fixed' && pushFixed) n.push(pushFixed); if (v === 'opt_push_slide' && pushSlide) n.push(pushSlide); return n; }); };
-                      const setWheelie = (v) => { setSelectedOptions(prev => { let n = (prev || []).filter(o => o && o.id !== 'opt_wheelie_fixed' && o.id !== 'opt_wheelie_fold'); if (v === 'opt_wheelie_fixed' && wheelieFixed) n.push(wheelieFixed); if (v === 'opt_wheelie_fold' && wheelieFold) n.push(wheelieFold); return n; }); };
-                      const setFender = (v) => { setSelectedOptions(prev => { let n = (prev || []).filter(o => o && o.id !== 'opt_fender_s' && o.id !== 'opt_fender_l'); if (v === 'opt_fender_s' && fenderS) n.push(fenderS); if (v === 'opt_fender_l' && fenderL) n.push(fenderL); return n; }); };
-                      const setCushionTbl = (v) => { setSelectedOptions(prev => { let n = (prev || []).filter(o => o && o.id !== 'opt_cushion_tbl_white' && o.id !== 'opt_cushion_tbl_blue' && o.id !== 'opt_cushion_tbl_pink'); if (v === 'opt_cushion_tbl_white' && cushionWhite) n.push(cushionWhite); if (v === 'opt_cushion_tbl_blue' && cushionBlue) n.push(cushionBlue); if (v === 'opt_cushion_tbl_pink' && cushionPink) n.push(cushionPink); return n; }); };
-                      const priceStr = (opt) => { if (!opt) return ''; const p = itemPriceWithPackage(opt, pkgId); return p == null ? '' : (p === 0 ? '込' : '+' + yen(p)); };
-                      const cushionPriceStr = (opt) => { if (!opt) return ''; const p = (opt.priceKey && getPrice(opt.priceKey)) ?? opt.price; return p == null ? '' : (p === 0 ? '込' : '+' + yen(p)); };
-                      return (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 p-4 bg-slate-50 rounded-2xl border border-slate-200">
-                        <div className={pushDropdownDisabled ? 'opacity-90' : ''}>
-                          <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">プッシュハンドル</label>
-                          <select className="w-full bg-white border rounded-xl p-3 text-sm font-bold outline-none disabled:opacity-50 disabled:cursor-not-allowed" value={pushVal} onChange={e => !pushDropdownDisabled && setPush(e.target.value)} disabled={pushDropdownDisabled}>
-                            <option value="">なし</option>
-                            <option value="opt_push_fixed">固定式 {isSchool ? '込' : priceStr(pushFixed)}</option>
-                            <option value="opt_push_slide">スライド式 {priceStr(pushSlide)}</option>
-                          </select>
-                          {pushDropdownDisabled && <p className="text-[10px] text-amber-600 font-bold mt-1">グリップを選択しているため選択できません</p>}
-                        </div>
-                        <div>
-                          <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">ウイリーバー</label>
-                          <select className="w-full bg-white border rounded-xl p-3 text-sm font-bold outline-none" value={wheelieVal} onChange={e => setWheelie(e.target.value)}>
-                            {!isSchool && <option value="">なし</option>}
-                            <option value="opt_wheelie_fixed">{isSchool ? '固定式（標準装備）込' : '固定式 ' + priceStr(wheelieFixed)}</option>
-                            <option value="opt_wheelie_fold">折りたたみ式 {priceStr(wheelieFold)}</option>
-                          </select>
-                        </div>
-                        <div>
-                          <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">樹脂製フェンダー</label>
-                          <select className="w-full bg-white border rounded-xl p-3 text-sm font-bold outline-none" value={fenderVal} onChange={e => setFender(e.target.value)}>
-                            {!isSchool && <option value="">なし</option>}
-                            <option value="opt_fender_s">{isSchool ? '小（標準装備）込' : '小 ' + priceStr(fenderS)}</option>
-                            <option value="opt_fender_l">大 {priceStr(fenderL)}</option>
-                          </select>
-                        </div>
-                        <div>
-                          <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">クッションテーブル</label>
-                          <select className="w-full bg-white border rounded-xl p-3 text-sm font-bold outline-none" value={cushionVal} onChange={e => setCushionTbl(e.target.value)}>
-                            <option value="">なし</option>
-                            <option value="opt_cushion_tbl_white">ホワイト No.1 {cushionPriceStr(cushionWhite)}</option>
-                            <option value="opt_cushion_tbl_blue">ブルー No.2 {cushionPriceStr(cushionBlue)}</option>
-                            <option value="opt_cushion_tbl_pink">ピンク No.3 {cushionPriceStr(cushionPink)}</option>
-                          </select>
-                        </div>
-                      </div>
-                    ); })()}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                      {(currentCatalog.options || []).filter(opt => {
-                        const isArmrestGroup = ['opt_arm_l','opt_arm_h','opt_arm','opt_arm_mr','opt_arm_ln'].includes(opt.id);
-                        const isKidsDropdownGroup = (selectedSeries === 'MINI_NEO_KIDS' || selectedSeries === 'MINI_NEO_JUNIOR') && ['opt_push_fixed','opt_push_slide','opt_wheelie_fixed','opt_wheelie_fold','opt_fender_s','opt_fender_l','opt_cushion_tbl_white','opt_cushion_tbl_blue','opt_cushion_tbl_pink'].includes(opt.id);
-                        if (opt.id === 'opt_flip' && (Array.isArray(opt.ahLow) || Array.isArray(opt.ahHigh) || Array.isArray(opt.ah))) return false;
-                        if (catalogVariant === 'kids' && (opt.id === 'opt_arm_std' || opt.id === 'opt_flip_arm')) return false;
-                        const isSchoolPkg = (selections.package?.id === 'kids_school' || selections.package?.id === 'jr_school') || (selections.baseModel?.id === 'kids_school' || selections.baseModel?.id === 'jr_school');
-                        if (opt.packageOnly === 'enjoy' && isSchoolPkg) return false;
-                        if (isKidsDropdownGroup) return false;
-                        return !isArmrestGroup;
-                      }).map(opt => {
-                        const pkgId = (selectedSeries === 'MINI_NEO_KIDS' || selectedSeries === 'MINI_NEO_JUNIOR') ? selections.baseModel?.id : selections.package?.id;
-                        const isEnjoy = pkgId === 'kids_enjoy' || pkgId === 'jr_enjoy';
-                        const hasPush = (selectedOptions || []).some(o => o && (o.id === 'opt_push_fixed' || o.id === 'opt_push_slide'));
-                        const hasWheelieFixed = (selectedOptions || []).some(o => o && o.id === 'opt_wheelie_fixed');
-                        const isCamberMinus4 = dimensions.cm === '-4' || dimensions.cm === '-4°';
-                        const disabledKaidByCamber = opt.id === 'opt_kaid_wheel' && isCamberMinus4;
-                        const disabledGripByPush = opt.id === 'opt_grip' && isEnjoy && hasPush;
-                        const disabled = (opt.requirePushWhenEnjoy && isEnjoy && !hasPush) || (opt.requireWheelieFixed && !hasWheelieFixed) || disabledKaidByCamber || disabledGripByPush;
-                        const dispPrice = itemPriceWithPackage(opt, pkgId);
-                        const disabledReason = disabledGripByPush ? 'プッシュハンドルを選択しているため選択できません' : (disabledKaidByCamber ? 'キャンバー-4°選択時は選択できません' : (opt.requireWheelieFixed && !hasWheelieFixed ? 'ウイリーバー 固定式を選択すると選択できます' : (opt.requirePushWhenEnjoy && isEnjoy && !hasPush ? 'プッシュハンドルを選択すると選択できます' : null)));
-                        return (
-                        <div key={opt.id} className={disabled ? 'opacity-90' : ''}>
-                        <button type="button" disabled={disabled} onClick={() => !disabled && toggleItem(opt, selectedOptions, setSelectedOptions)} className={`w-full flex justify-between items-center p-5 border rounded-2xl text-left transition-all ${disabled ? 'opacity-50 cursor-not-allowed border-slate-200 bg-slate-50' : ''} ${selectedOptions.find(o=>o.id===opt.id) ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-500' : 'border-slate-100 bg-white hover:border-blue-300'}`}>
-                          <div><p className="text-[9px] font-bold text-blue-400 mb-1 tracking-widest uppercase leading-none">{opt.no}</p><span className="text-xs font-black text-slate-700 uppercase leading-none">{opt.name}</span></div>
-                          <span className="text-xs font-mono font-black text-blue-600">{dispPrice == null ? '未設定' : (dispPrice >= 0 ? '+' : '') + yen(dispPrice)}</span>
-                        </button>
-                        {disabled && disabledReason && <p className="text-[10px] text-amber-600 font-bold mt-1 px-1">{disabledReason}</p>}
-                        </div>
-                      ); })}
-                    </div>
-                  </div>
+                  <SpecialOptionsSection
+                    SettingsIcon={Settings}
+                    armrestConfig={armrestConfig}
+                    armrestSel={armrestSel}
+                    setArmrestSel={setArmrestSel}
+                    showMissingRequired={showMissingRequired}
+                    selectedSeries={selectedSeries}
+                    selections={selections}
+                    catalogVariant={catalogVariant}
+                    currentCatalog={currentCatalog}
+                    selectedOptions={selectedOptions}
+                    setSelectedOptions={setSelectedOptions}
+                    dimensions={dimensions}
+                    itemPriceWithPackage={itemPriceWithPackage}
+                    getPrice={getPrice}
+                    yen={yen}
+                    toggleItem={toggleItem}
+                    optionsForGrid={optionsForGrid}
+                    setPush={kidsOptionHandlers.setPush}
+                    setWheelie={kidsOptionHandlers.setWheelie}
+                    setFender={kidsOptionHandlers.setFender}
+                    setCushionTbl={kidsOptionHandlers.setCushionTbl}
+                  />
                   <div className="bg-slate-900 rounded-[2.5rem] p-8 text-white relative overflow-hidden mb-8 border border-blue-500/20">
                     <h3 className="text-xl font-black mb-8 flex items-center gap-3 tracking-widest uppercase"><Heart size={24} className="text-blue-400" /> 5. アクセサリー</h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
