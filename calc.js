@@ -3,8 +3,30 @@
   // 価格取得・加算ルール
   // ===============================
   function getPrice(key) {
-    const master = global.PRICE_MASTER || {};
-    return key && master[key] != null ? master[key] : 0;
+    if (!key) return 0;
+
+    // 年指定マスター（PRICE_MASTERS / PRICE_MASTER_YEAR）があればそちらを優先
+    const masters = global.PRICE_MASTERS || null;
+    const year = global.PRICE_MASTER_YEAR || 2025;
+    const masterByYear = masters && masters[year];
+
+    // なければ従来どおり単一の PRICE_MASTER を見る（互換用）
+    const master = masterByYear || global.PRICE_MASTER || {};
+
+    if (master[key] != null) {
+      return master[key];
+    }
+
+    // デバッグ時のみ未定義キーを警告
+    if (global.PRICE_DEBUG) {
+      console.warn('[PRICE] 未定義の priceKey が使用されました:', {
+        key,
+        year,
+        hasMasterByYear: !!masterByYear,
+      });
+    }
+
+    return 0;
   }
 
   function itemPrice(item) {
