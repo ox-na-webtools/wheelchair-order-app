@@ -24,9 +24,17 @@ const User = (p) => <Icon {...p}><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v
 const Store = (p) => <Icon {...p}><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><path d="M9 22V12h6v10"/></Icon>;
 const UserCheck = (p) => <Icon {...p}><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8l2 2-4 4-2-2 2-2"/></Icon>;
 // カタログ・マスター: catalog.js / catalog-kids.js / price_master_2025.js / data_ui.js で定義
-const getPrice = (key) => (key && PRICE_MASTER[key] != null ? PRICE_MASTER[key] : 0);
+// 価格ロジックは calc.js 側の関数を優先的に利用し、未ロード時のみ従来ロジックにフォールバックする
+const getPrice = (key) => {
+  if (!key) return 0;
+  if (window.calcGetPrice) return window.calcGetPrice(key);
+  return key && window.PRICE_MASTER && window.PRICE_MASTER[key] != null
+    ? window.PRICE_MASTER[key]
+    : 0;
+};
 const itemPrice = (item) => {
   if (!item) return 0;
+  if (window.calcItemPrice) return window.calcItemPrice(item);
   if (item.priceKey) return getPrice(item.priceKey);
   return item.price || 0;
 };
@@ -681,8 +689,8 @@ const App = () => {
       rows.push([item.label, item.name, item.no, priceStr]);
     });
     rows.push([]);
-    // オプション & アクセサリー
-    const extras = [...selectedOptions, ...selectedAccessories].filter(o => o.__group !== 'ARMREST');
+    // オプション & アクセサリー（アームレストも含めて出力）
+    const extras = [...selectedOptions, ...selectedAccessories];
     if (extras.length > 0) {
       rows.push(["【02. オプション & アクセサリー】"]);
       rows.push(["No.", "品名", "金額"]);
