@@ -1313,64 +1313,79 @@ const App = () => {
                         <div className="space-y-6">
                           <label className="block text-xs font-black text-slate-600 uppercase tracking-widest mb-4 italic">B. カラー指定</label>
                           {catalogVariant === 'kids' && selectedSeries !== 'COTON' && paint.type === 'special_1' ? (
-                            <div className="space-y-2">
-                              <p className="text-xs font-black text-slate-600 uppercase mb-1">塗装色を入力</p>
-                              <input
-                                type="text"
-                                placeholder="塗装色を入力してください"
-                                className="w-full bg-white border-2 border-blue-100 rounded-xl py-4 px-4 text-sm font-black outline-none shadow-sm transition-all focus:border-blue-600 focus:ring-1 focus:ring-blue-600"
-                                value={paint.customColors[0] ?? ''}
-                                onChange={e => handleCustomColorChange(0, e.target.value)}
-                              />
+                            <div className="p-4 rounded-xl border-2 border-blue-500 bg-blue-50/30">
+                              <div className="space-y-2">
+                                <p className="text-xs font-black text-slate-600 uppercase mb-1">塗装色を入力</p>
+                                <input
+                                  type="text"
+                                  placeholder="塗装色を入力してください"
+                                  className="w-full bg-white border-2 border-blue-100 rounded-xl py-4 px-4 text-sm font-black outline-none shadow-sm transition-all focus:border-blue-600 focus:ring-1 focus:ring-blue-600"
+                                  value={paint.customColors[0] ?? ''}
+                                  onChange={e => handleCustomColorChange(0, e.target.value)}
+                                />
+                              </div>
                             </div>
                           ) : (
                             <>
                               <div className={`space-y-2 ${paint.type !== 'standard' ? 'opacity-40 cursor-not-allowed' : ''}`}>
                                 <p className="text-xs font-black text-slate-600 uppercase mb-1">1. 標準塗装色 (ベースカラー)</p>
-                                <select 
-                                  disabled={paint.type !== 'standard'}
-                                  className="w-full bg-slate-50 border-2 rounded-xl p-4 text-sm font-black outline-none shadow-sm transition-all focus:border-blue-600 disabled:bg-slate-200" 
-                                  value={paint.standardColor} 
-                                  onChange={e => setPaint({...paint, standardColor: e.target.value})}
-                                >
-                                  <option value="">選択</option>
-                                  {(selectedSeries === 'Fusion' 
-                                    ? FUSION_STANDARD_COLORS 
-                                    : (selectedSeries === 'NEO' 
-                                      ? NEO_STANDARD_COLORS 
-                                      : (selectedSeries === 'MX_MR' ? MX_MR_STANDARD_COLORS : STANDARD_COLORS))
-                                  ).map(c => (
-                                    <option key={c} value={c}>{c}</option>
-                                  ))}
-                                </select>
-                              </div>
-                              <div className="space-y-3">
-                                <p className="text-[10px] font-black text-blue-600 uppercase mb-1">2. 特別塗装色 / 特殊ペイント カラー指定（最大3色）</p>
-                                {[0, 1, 2].map((idx) => (
-                                  <div key={idx} className="relative">
-                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[11px] font-black text-slate-500">{idx + 1}色目</span>
-                                    <input 
-                                      type="text"
-                                      placeholder={idx === 0 ? "カラー名や番号を入力" : "(複数色の場合に入力)"}
-                                      className="w-full bg-white border-2 border-blue-100 rounded-xl py-4 pl-14 pr-4 text-sm font-black outline-none shadow-sm transition-all focus:border-blue-600 focus:ring-1 focus:ring-blue-600"
-                                      value={paint.customColors[idx]}
-                                      onChange={e => handleCustomColorChange(idx, e.target.value)}
-                                    />
-                                  </div>
-                                ))}
-                                {/* カラーガイド PDF リンク */}
-                                <div className="pt-2">
-                                  <a 
-                                    href="https://www.oxgroup.co.jp/wp/wp-content/uploads/2024/12/ColorGuide2025.08_Vol.1_PDF%E7%89%88.pdf" 
-                                    target="_blank" 
-                                    rel="noopener noreferrer"
-                                    className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 rounded-xl border border-blue-100 hover:bg-blue-100 transition-colors text-xs font-black"
+                                {(catalogVariant === 'kids' && selectedSeries !== 'COTON') ? (
+                                  <input
+                                    type="text"
+                                    placeholder="カラー名や番号を入力"
+                                    disabled={paint.type !== 'standard'}
+                                    className="w-full bg-white border-2 border-blue-100 rounded-xl py-4 px-4 text-sm font-black outline-none shadow-sm transition-all focus:border-blue-600 focus:ring-1 focus:ring-blue-600 disabled:bg-slate-200 disabled:border-slate-200"
+                                    value={paint.standardColor ?? ''}
+                                    onChange={e => setPaint({...paint, standardColor: e.target.value})}
+                                  />
+                                ) : (
+                                  <select 
+                                    disabled={paint.type !== 'standard'}
+                                    className="w-full bg-slate-50 border-2 rounded-xl p-4 text-sm font-black outline-none shadow-sm transition-all focus:border-blue-600 disabled:bg-slate-200" 
+                                    value={paint.standardColor} 
+                                    onChange={e => setPaint({...paint, standardColor: e.target.value})}
                                   >
-                                    <ExternalLink size={14} />
-                                    カラーガイド (PDF) を表示
-                                  </a>
-                                </div>
+                                    <option value="">選択</option>
+                                    {(selectedSeries === 'Fusion' 
+                                      ? FUSION_STANDARD_COLORS 
+                                      : (selectedSeries === 'NEO' 
+                                        ? NEO_STANDARD_COLORS 
+                                        : (selectedSeries === 'MX_MR' ? MX_MR_STANDARD_COLORS : STANDARD_COLORS))
+                                    ).map(c => (
+                                      <option key={c} value={c}>{c}</option>
+                                    ))}
+                                  </select>
+                                )}
                               </div>
+                              {(paint.type === 'special_1' || paint.type === 'special_2' || paint.type === 'special_3') && (
+                                <div className="p-4 rounded-xl border-2 border-blue-500 bg-blue-50/30 space-y-3">
+                                  <p className="text-[10px] font-black text-blue-600 uppercase mb-1">2. 特別塗装色 / 特殊ペイント カラー指定（最大3色）</p>
+                                  {[0, 1, 2].map((idx) => (
+                                    <div key={idx} className="relative">
+                                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[11px] font-black text-slate-500">{idx + 1}色目</span>
+                                      <input 
+                                        type="text"
+                                        placeholder={idx === 0 ? "カラー名や番号を入力" : "(複数色の場合に入力)"}
+                                        className="w-full bg-white border-2 border-blue-100 rounded-xl py-4 pl-14 pr-4 text-sm font-black outline-none shadow-sm transition-all focus:border-blue-600 focus:ring-1 focus:ring-blue-600"
+                                        value={paint.customColors[idx]}
+                                        onChange={e => handleCustomColorChange(idx, e.target.value)}
+                                      />
+                                    </div>
+                                  ))}
+                                  {/* カラーガイド PDF リンク */}
+                                  <div className="pt-2">
+                                    <a 
+                                      href="https://www.oxgroup.co.jp/wp/wp-content/uploads/2024/12/ColorGuide2025.08_Vol.1_PDF%E7%89%88.pdf" 
+                                      target="_blank" 
+                                      rel="noopener noreferrer"
+                                      className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 rounded-xl border border-blue-100 hover:bg-blue-100 transition-colors text-xs font-black"
+                                    >
+                                      <ExternalLink size={14} />
+                                      カラーガイド (PDF) を表示
+                                    </a>
+                                  </div>
+                                </div>
+                              )}
                             </>
                           )}
                         </div>
