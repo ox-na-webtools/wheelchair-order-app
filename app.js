@@ -1,4 +1,7 @@
 import { calcPrice } from './src/lib/pricing.js';
+import { getArmrestConfig, filterOptionsForSpecialSection } from './src/lib/option_rules.js';
+import { toggleItem, upsertArmrestOption, computeArmrestOption, createSetPush, createSetWheelie, createSetFender, createSetCushionTbl } from './src/lib/option_selectors.js';
+import { SpecialOptionsSection } from './src/lib/sections/special_options.js';
 const { useState, useMemo, useEffect, useCallback } = React;
 function Icon({ size = 24, className = '', children }) {
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>{children}</svg>;
@@ -23,6 +26,7 @@ const ExternalLink = (p) => <Icon {...p}><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 
 const User = (p) => <Icon {...p}><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></Icon>;
 const Store = (p) => <Icon {...p}><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><path d="M9 22V12h6v10"/></Icon>;
 const UserCheck = (p) => <Icon {...p}><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8l2 2-4 4-2-2 2-2"/></Icon>;
+const ArrowUp = (p) => <Icon {...p}><path d="M12 19V5M5 12l7-7 7 7"/></Icon>;
 // カタログ・マスター: catalog.js / catalog-kids.js / price_master_2025.js / data_ui.js で定義
 // 価格ロジックは calc.js 側の関数を優先的に利用し、未ロード時のみ従来ロジックにフォールバックする
 const getPrice = (key) => {
@@ -36,6 +40,24 @@ const getPrice = (key) => {
 const itemPrice = (item) => {
   if (!item) return 0;
   if (window.calcItemPrice) return window.calcItemPrice(item);
+  if (item.priceKey) return getPrice(item.priceKey);
+  return item.price != null ? item.price : 0;
+};
+/** ミニネオキッズ・ジュニアのパッケージ別オプション価格（エンジョイ/スクールで価格が変わるもの） */
+const itemPriceWithPackage = (item, packageId) => {
+  if (!item) return 0;
+  const isEnjoy = packageId === 'kids_enjoy' || packageId === 'jr_enjoy';
+  const isSchool = packageId === 'kids_school' || packageId === 'jr_school';
+  if (item.priceKeyEnjoy != null && item.priceKeySchool != null) {
+    const key = isEnjoy ? item.priceKeyEnjoy : (isSchool ? item.priceKeySchool : item.priceKeyEnjoy);
+    const master = window.PRICE_MASTER;
+    if (master && Object.prototype.hasOwnProperty.call(master, key)) return master[key];
+    return item.price != null ? item.price : 0;
+  }
+  if (item.priceKeySchool != null && isSchool) {
+    const master = window.PRICE_MASTER;
+    if (master && Object.prototype.hasOwnProperty.call(master, item.priceKeySchool)) return master[item.priceKeySchool];
+  }
   if (item.priceKey) return getPrice(item.priceKey);
   return item.price != null ? item.price : 0;
 };
@@ -173,7 +195,7 @@ const App = () => {
     if (rules?.l8MapCamberMinus4 && (dimensions.cm === '-4' || dimensions.cm === '-4°')) {
       let list = rules.l8MapCamberMinus4[dimensions.offset] || [];
       if (catalogVariant === 'kids' && list.length > 2) {
-        const hasRestrict = (selectedOptions || []).some(o => o && (o.id === 'opt_wheelie' || o.id === 'opt_kaid_wheel'));
+        const hasRestrict = (selectedOptions || []).some(o => o && (o.id === 'opt_wheelie' || o.id === 'opt_wheelie_fixed' || o.id === 'opt_wheelie_fold' || o.id === 'opt_kaid_wheel'));
         if (hasRestrict) list = list.slice(1, -1);
       }
       return list;
@@ -181,7 +203,7 @@ const App = () => {
     if (rules?.l8Map) {
       let list = rules.l8Map[dimensions.offset] || [];
       if (catalogVariant === 'kids' && list.length > 2) {
-        const hasRestrict = (selectedOptions || []).some(o => o && (o.id === 'opt_wheelie' || o.id === 'opt_kaid_wheel'));
+        const hasRestrict = (selectedOptions || []).some(o => o && (o.id === 'opt_wheelie' || o.id === 'opt_wheelie_fixed' || o.id === 'opt_wheelie_fold' || o.id === 'opt_kaid_wheel'));
         if (hasRestrict) list = list.slice(1, -1);
       }
       return list;
@@ -211,6 +233,29 @@ const App = () => {
     const nextOffset = String(h).includes('フラット') ? '-20' : '0';
     setDimensions(d => (d.offset === nextOffset ? d : { ...d, offset: nextOffset }));
   }, [selectedSeries, frameParts.height]);
+  // ミニネオキッズ・ジュニア スクール時: ウイリーバー固定式・樹脂製フェンダー小は標準装備のため未選択なら追加
+  useEffect(() => {
+    if (!currentCatalog?.options || !(selectedSeries === 'MINI_NEO_KIDS' || selectedSeries === 'MINI_NEO_JUNIOR')) return;
+    const pkgId = selections.baseModel?.id;
+    if (pkgId !== 'kids_school' && pkgId !== 'jr_school') return;
+    const opts = currentCatalog.options;
+    const wheelieFixed = opts.find(o => o.id === 'opt_wheelie_fixed');
+    const fenderS = opts.find(o => o.id === 'opt_fender_s');
+    setSelectedOptions(prev => {
+      const hasWheelie = (prev || []).some(o => o && (o.id === 'opt_wheelie_fixed' || o.id === 'opt_wheelie_fold'));
+      const hasFender = (prev || []).some(o => o && (o.id === 'opt_fender_s' || o.id === 'opt_fender_l'));
+      let next = [...(prev || [])];
+      if (!hasWheelie && wheelieFixed) {
+        next = next.filter(o => o && o.id !== 'opt_wheelie_fixed' && o.id !== 'opt_wheelie_fold');
+        next.push(wheelieFixed);
+      }
+      if (!hasFender && fenderS) {
+        next = next.filter(o => o && o.id !== 'opt_fender_s' && o.id !== 'opt_fender_l');
+        next.push(fenderS);
+      }
+      return next;
+    });
+  }, [selections.baseModel?.id, selectedSeries, currentCatalog]);
   const availableTires = useMemo(() => {
     if (!currentCatalog?.tireBrand) return [];
     const brand = TIRE_COLOR_MASTER[currentCatalog.tireBrand];
@@ -247,94 +292,11 @@ const App = () => {
     if (selections.axleType?.id === 'axle_b') return ['0'];
     return currentCatalog?.dimensionRules?.camber || ['0'];
   }, [selections.axleType, currentCatalog]);
-  const armrestConfig = useMemo(() => {
-    if (!currentCatalog?.options) return { arm: null, flip: null };
-    const dr = currentCatalog.dimensionRules;
-    if (selectedSeries === 'COTON' && dr?.armrestAhByType) {
-      const by = dr.armrestAhByType;
-      const arm = {
-        low:  { id: 'coton_arm_low',  baseId: 'coton_arm', name: 'アームレスト ロー',   no: '-', price: 0, ah: (by['ロー'] || []).map(Number) },
-        mid:  { id: 'coton_arm_mid',  baseId: 'coton_arm', name: 'アームレスト ミディアム', no: '-', price: 0, ah: (by['ミディアム'] || []).map(Number) },
-        high: { id: 'coton_arm_high', baseId: 'coton_arm', name: 'アームレスト ハイ',  no: '-', price: 0, ah: (by['ハイ'] || []).map(Number) },
-      };
-      return { arm, flip: null };
-    }
-    const findById = (id) => currentCatalog.options.find(o => o.id === id);
-    const findByNameIncludes = (kw) => currentCatalog.options.find(o => (o.name || '').includes(kw));
-    const zzrLow = findById('opt_arm_l');
-    const zzrHigh = findById('opt_arm_h');
-    let armBase, flipBase;
-    if (catalogVariant === 'kids') {
-      const isKidsOrJrSchool = (selectedSeries === 'MINI_NEO_KIDS' && selections.baseModel?.id === 'kids_school') || (selectedSeries === 'MINI_NEO_JUNIOR' && selections.baseModel?.id === 'jr_school');
-      const isAKidsOrAJr = selectedSeries === 'MINI_NEO_A_KIDS' || selectedSeries === 'MINI_NEO_A_JUNIOR';
-      const isKidsOrJr = selectedSeries === 'MINI_NEO_KIDS' || selectedSeries === 'MINI_NEO_JUNIOR';
-      const isToddler = selectedSeries === 'MINI_NEO_TODDLER';
-      armBase = (isKidsOrJrSchool || isAKidsOrAJr || isKidsOrJr || isToddler) ? findById('opt_arm_std') : null;
-      flipBase = findById('opt_flip_arm');
-    } else {
-      armBase = (selectedSeries === 'MX_MR') ? (selections.baseModel?.id === 'mr_base' ? findById('opt_arm_mr') : null) || findById('opt_arm') || findByNameIncludes('アームレスト') : findById('opt_arm') || findById('opt_arm_ln') || findByNameIncludes('アームレスト');
-      flipBase = findById('opt_flip') || findByNameIncludes('はね上げ式アームレスト');
-    }
-    const buildFromCombined = (obj, baseName) => {
-      if (!obj) return null;
-      const m = (obj.no || '').split('/');
-      const no = { low: m[0]?.trim() || obj.no, mid: m[0]?.trim() || obj.no, high: m[1]?.trim() || obj.no };
-      const hLabel = frameParts?.height?.label ?? frameParts?.height ?? '';
-      const hs = String(hLabel);
-      const hk = hs.includes('フラット') ? 'フラット' : hs.includes('ハイ') ? 'ハイ' : 'レギュラー';
-      const lowAh = (obj.ahLowByHeight && obj.ahLowByHeight[hk]) || (Array.isArray(obj.ahLow) ? obj.ahLow : (Array.isArray(obj.ah) ? obj.ah : []));
-      const midAh = (Array.isArray(obj.ahMid) ? obj.ahMid : []);
-      const highAh = (obj.ahHighByHeight && obj.ahHighByHeight[hk]) || (Array.isArray(obj.ahHigh) ? obj.ahHigh : (Array.isArray(obj.ah) ? obj.ah : []));
-      const result = {
-        low:  lowAh.length  ? { id: `${obj.id}__low__armgrp`,  baseId: obj.id, name: `${baseName} ロー`,  no: no.low,  price: obj.price || 0, ah: lowAh } : null,
-        mid:  midAh.length  ? { id: `${obj.id}__mid__armgrp`,  baseId: obj.id, name: `${baseName} ミディアム`, no: no.mid,  price: obj.price || 0, ah: midAh } : null,
-        high: highAh.length ? { id: `${obj.id}__high__armgrp`, baseId: obj.id, name: `${baseName} ハイ`, no: no.high, price: obj.price || 0, ah: highAh } : null,
-      };
-      return result;
-    };
-    let arm, flip;
-    if (zzrLow || zzrHigh) {
-      arm = { low: zzrLow ? { ...zzrLow, baseId: zzrLow.id, name: 'アームレスト ロー' } : null, high: zzrHigh ? { ...zzrHigh, baseId: zzrHigh.id, name: 'アームレスト ハイ' } : null };
-      flip = buildFromCombined(flipBase, 'はね上げ式アームレスト');
-    } else {
-      arm = buildFromCombined(armBase, 'アームレスト');
-      flip = buildFromCombined(flipBase, 'はね上げ式アームレスト');
-    }
-    return { arm, flip, armrestLengths: dr?.armrestLengths || null };
-  }, [currentCatalog, frameParts.height, selectedSeries, selections.baseModel?.id, catalogVariant]);
-  const upsertArmrestOption = useCallback((next) => {
-    setSelectedOptions(prev => {
-      const removed = prev.filter(o => !(o && o.__group === 'ARMREST'));
-      return next ? [...removed, next] : removed;
-    });
-  }, []);
+  const armrestConfig = useMemo(() => getArmrestConfig(currentCatalog, frameParts, selectedSeries, selections.baseModel?.id, catalogVariant), [currentCatalog, frameParts.height, selectedSeries, selections.baseModel?.id, catalogVariant]);
   useEffect(() => {
-    if (!armrestSel.kind || !armrestSel.lh || !armrestSel.ah) { upsertArmrestOption(null); return; }
-    const needsAl = armrestConfig.armrestLengths?.length && (selectedSeries === 'MINI_NEO_KIDS' || selectedSeries === 'MINI_NEO_JUNIOR');
-    if (needsAl && !armrestSel.al) { upsertArmrestOption(null); return; }
-    const group = armrestSel.kind === 'arm' ? armrestConfig.arm : armrestConfig.flip;
-    const base = armrestSel.lh === 'ロー' ? group?.low : armrestSel.lh === 'ミディアム' ? group?.mid : group?.high;
-    if (!base) { upsertArmrestOption(null); return; }
-    let calculatedPrice = base.price || 0;
-    const isStandardZeroSeries = (selectedSeries === 'NEO' || selectedSeries === 'GWE' || selectedSeries === 'COTON' || (selectedSeries === 'MX_MR' && selections.baseModel?.id === 'mx_base'));
-    const isKidsArmrestSeries = catalogVariant === 'kids' && ['MINI_NEO_KIDS', 'MINI_NEO_JUNIOR', 'MINI_NEO_A_KIDS', 'MINI_NEO_A_JUNIOR'].includes(selectedSeries);
-    if (selectedSeries === 'MINI_NEO_TODDLER') {
-      calculatedPrice = base.price ?? 0;
-    } else if (isStandardZeroSeries) {
-      calculatedPrice = (selectedSeries === 'COTON' || armrestSel.kind === 'arm') ? 0 : 6000;
-    } else if (isKidsArmrestSeries) {
-      const isKidsOrJrSchool = (selectedSeries === 'MINI_NEO_KIDS' && selections.baseModel?.id === 'kids_school') || (selectedSeries === 'MINI_NEO_JUNIOR' && selections.baseModel?.id === 'jr_school');
-      calculatedPrice = armrestSel.kind === 'arm' ? (isKidsOrJrSchool ? 0 : 22000) : 6000;
-    } else if (selectedSeries === 'MX_MR' && selections.baseModel?.id === 'mr_base') {
-      calculatedPrice = armrestSel.kind === 'arm' ? 22000 : 28000;
-    }
-    let note = `アームレスト高 ${armrestSel.ah}mm`;
-    if (needsAl && armrestSel.al) {
-      const alObj = armrestConfig.armrestLengths.find(a => a.no === armrestSel.al || a.label === armrestSel.al);
-      if (alObj) note += ` / AL: ${alObj.label} (${alObj.no})`;
-    }
-    upsertArmrestOption({ id: `${base.id}__${armrestSel.ah}${armrestSel.al ? `_al_${armrestSel.al}` : ''}`, name: base.name, no: base.no, price: calculatedPrice, note, __group: 'ARMREST' });
-  }, [armrestSel, armrestConfig, upsertArmrestOption, selectedSeries, selections.baseModel, catalogVariant]);
+    const next = computeArmrestOption(armrestSel, armrestConfig, selectedSeries, selections.baseModel, catalogVariant);
+    upsertArmrestOption(next, setSelectedOptions);
+  }, [armrestSel, armrestConfig, selectedSeries, selections.baseModel, catalogVariant]);
   // COTON / ミニネオAキッズ・エージュニア: アームレスト標準のため最初から「アームレスト」を選択状態にする
   // ミニネオキッズ・ジュニア スクール: 標準アーム＋高低を同時にセット（高低だけ遅れると高さが選べない不具合を防ぐ）
   useEffect(() => {
@@ -356,6 +318,16 @@ const App = () => {
     if (selectedSeries === 'MINI_NEO_KIDS' && (group?.low || group?.high) && !armrestSel.lh) setArmrestSel(s => ({ ...s, lh: 'ロー' }));
     if (selectedSeries === 'MINI_NEO_JUNIOR' && (group?.low || group?.high) && !armrestSel.lh) setArmrestSel(s => ({ ...s, lh: 'ハイ' }));
   }, [catalogVariant, selectedSeries, armrestConfig.arm, armrestConfig.flip, armrestSel.kind, armrestSel.lh, selections.baseModel?.id]);
+  const optionsForGrid = useMemo(() => filterOptionsForSpecialSection(currentCatalog?.options || [], { selectedSeries, catalogVariant, selections }), [currentCatalog?.options, selectedSeries, catalogVariant, selections]);
+  const kidsOptionHandlers = useMemo(() => {
+    const opts = currentCatalog?.options || [];
+    return {
+      setPush: createSetPush(setSelectedOptions, opts.find(o => o.id === 'opt_push_fixed'), opts.find(o => o.id === 'opt_push_slide')),
+      setWheelie: createSetWheelie(setSelectedOptions, opts.find(o => o.id === 'opt_wheelie_fixed'), opts.find(o => o.id === 'opt_wheelie_fold')),
+      setFender: createSetFender(setSelectedOptions, opts.find(o => o.id === 'opt_fender_s'), opts.find(o => o.id === 'opt_fender_l')),
+      setCushionTbl: createSetCushionTbl(setSelectedOptions, opts.find(o => o.id === 'opt_cushion_tbl_white'), opts.find(o => o.id === 'opt_cushion_tbl_blue'), opts.find(o => o.id === 'opt_cushion_tbl_pink')),
+    };
+  }, [setSelectedOptions, currentCatalog?.options]);
   const [isConfirmed, setIsConfirmed] = useState(false);
   const [showConfirmReset, setShowConfirmReset] = useState(null);
   const [showFullResetConfirm, setShowFullResetConfirm] = useState(false);
@@ -641,10 +613,6 @@ const App = () => {
     if (selectedSeries && selectedSeries !== key) setShowConfirmReset(key);
     else performSeriesReset(key);
   };
-  const toggleItem = (item, list, setList) => {
-    if (list.find(i => i.id === item.id)) setList(list.filter(i => i.id !== item.id));
-    else setList([...list, item]);
-  };
   const handleCustomColorChange = (index, val) => {
     const nextColors = [...paint.customColors];
     nextColors[index] = val;
@@ -704,7 +672,8 @@ const App = () => {
       rows.push(["【02. オプション & アクセサリー】"]);
       rows.push(["No.", "品名", "金額"]);
       extras.forEach(opt => {
-        const p = itemPrice(opt);
+        const pkgIdForCsv = (selectedSeries === 'MINI_NEO_KIDS' || selectedSeries === 'MINI_NEO_JUNIOR') ? selections.baseModel?.id : selections.package?.id;
+        const p = itemPriceWithPackage(opt, pkgIdForCsv) ?? itemPrice(opt);
         rows.push([opt.no, opt.name, p == null ? "未設定" : (p >= 0 ? `+${p}` : `${p}`)]);
       });
       rows.push([]);
@@ -950,23 +919,15 @@ const App = () => {
       )}
       <nav className="bg-slate-900 text-white p-5 fixed top-0 inset-x-0 z-50 shadow-xl border-b border-white/5">
         <div className="max-w-7xl mx-auto flex justify-between items-center gap-2 min-w-0">
-          <div className="flex items-center gap-3">
-            <div className={`${accent.navIcon} p-2.5 rounded-xl`}><Settings size={20} /></div>
-            <div>
-              <h1 className="font-black text-base md:text-lg leading-none uppercase tracking-widest">Configurator</h1>
+          <div className="flex items-center gap-3 min-w-0 shrink">
+            <div className={`${accent.navIcon} p-2.5 rounded-xl shrink-0`}><Settings size={20} /></div>
+            <div className="min-w-0">
+              <h1 className="font-black text-base md:text-lg leading-none uppercase tracking-widest truncate">Configurator</h1>
               <p className="text-[11px] opacity-60 uppercase tracking-[0.3em] mt-1 font-bold">2025 v5.9 Stable</p>
             </div>
-            <button
-              type="button"
-              onClick={() => { handleFullReset(); setCatalogVariant(null); }}
-              className="text-[10px] font-bold uppercase tracking-widest text-white/70 hover:text-white bg-white/5 hover:bg-white/10 px-3 py-2 rounded-xl transition-all border border-white/10"
-              title="トップページに戻る"
-            >
-              トップへ
-            </button>
           </div>
-          <div className="flex items-center gap-6 min-w-0 flex-1 justify-end">
-            <div className="flex flex-col text-right min-w-0 shrink-0">
+          <div className="flex items-center gap-6 min-w-0 flex-1 justify-end shrink-0">
+            <div className="flex flex-col text-right min-w-0">
               <span className={`text-xs font-bold ${accent.subtotal} uppercase mb-1 leading-none`}>Subtotal</span>
               <span className={`text-lg md:text-2xl font-black font-mono tracking-tighter ${accent.subtotal} leading-none`}>¥{totalAmount.toLocaleString()}</span>
               {showMissingRequired.length > 0 && (
@@ -976,6 +937,31 @@ const App = () => {
           </div>
         </div>
       </nav>
+      {/* Home（トップ画面）と Top（画面一番上）: 黒帯から出たフロートでスマホでも Subtotal と重ならない */}
+      <div
+        className="fixed left-3 z-50 flex items-center gap-1.5 rounded-b-xl bg-slate-900 text-white shadow-lg border border-t-0 border-white/10 no-print"
+        style={{ top: '5.75rem' }}
+        aria-label="ナビゲーション"
+      >
+        <button
+          type="button"
+          onClick={() => { handleFullReset(); setCatalogVariant(null); }}
+          className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-white/70 hover:text-white bg-white/5 hover:bg-white/10 px-2.5 py-2.5 rounded-lg transition-all border border-white/10"
+          title="トップ画面に戻る"
+        >
+          <Store size={14} />
+          <span className="hidden sm:inline">Home</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-white/70 hover:text-white bg-white/5 hover:bg-white/10 px-2.5 py-2.5 rounded-lg transition-all border border-white/10"
+          title="画面の一番上へ"
+        >
+          <ArrowUp size={14} />
+          <span className="hidden sm:inline">Top</span>
+        </button>
+      </div>
       {/* 確認ボタン: 右下に常時固定（スマホで押しやすく「確認」のみ表示） */}
       {!isConfirmed && (
         <div
@@ -1009,7 +995,8 @@ const App = () => {
           </button>
         </div>
       )}
-      <div className="h-[92px]" />
+      {/* ナビ高さ + Home/Top フロート分の余白で「1. 機種シリーズ選択」にかぶらない */}
+      <div className="h-[140px]" />
       <main className="max-w-7xl mx-auto p-3 sm:p-4 md:p-8">
         {!isConfirmed ? (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
@@ -1233,7 +1220,11 @@ const App = () => {
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                             {PAINT_PLANS.filter(plan => {
                             if (plan.id === 'mirror' && selectedSeries !== 'ZZR') return false;
-                            if (catalogVariant === 'kids' && (plan.id === 'grand' || plan.id === 'splash')) return false;
+                            if (catalogVariant === 'kids') {
+                              if (plan.id === 'grand' || plan.id === 'splash') return false;
+                              // キッズでは（コトン以外）1色塗装は全色標準色のため、特別色1色プランは非表示
+                              if (selectedSeries !== 'COTON' && plan.id === 'special_1') return false;
+                            }
                             if (catalogVariant === 'kids' && selectedSeries === 'COTON' && plan.id === 'special_1') return false;
                             return true;
                           }).map(plan => {
@@ -1267,64 +1258,79 @@ const App = () => {
                         <div className="space-y-6">
                           <label className="block text-xs font-black text-slate-600 uppercase tracking-widest mb-4 italic">B. カラー指定</label>
                           {catalogVariant === 'kids' && selectedSeries !== 'COTON' && paint.type === 'special_1' ? (
-                            <div className="space-y-2">
-                              <p className="text-xs font-black text-slate-600 uppercase mb-1">塗装色を入力</p>
-                              <input
-                                type="text"
-                                placeholder="塗装色を入力してください"
-                                className="w-full bg-white border-2 border-blue-100 rounded-xl py-4 px-4 text-sm font-black outline-none shadow-sm transition-all focus:border-blue-600 focus:ring-1 focus:ring-blue-600"
-                                value={paint.customColors[0] ?? ''}
-                                onChange={e => handleCustomColorChange(0, e.target.value)}
-                              />
+                            <div className="p-4 rounded-xl border-2 border-blue-500 bg-blue-50/30">
+                              <div className="space-y-2">
+                                <p className="text-xs font-black text-slate-600 uppercase mb-1">塗装色を入力</p>
+                                <input
+                                  type="text"
+                                  placeholder="塗装色を入力してください"
+                                  className="w-full bg-white border-2 border-blue-100 rounded-xl py-4 px-4 text-sm font-black outline-none shadow-sm transition-all focus:border-blue-600 focus:ring-1 focus:ring-blue-600"
+                                  value={paint.customColors[0] ?? ''}
+                                  onChange={e => handleCustomColorChange(0, e.target.value)}
+                                />
+                              </div>
                             </div>
                           ) : (
                             <>
                               <div className={`space-y-2 ${paint.type !== 'standard' ? 'opacity-40 cursor-not-allowed' : ''}`}>
                                 <p className="text-xs font-black text-slate-600 uppercase mb-1">1. 標準塗装色 (ベースカラー)</p>
-                                <select 
-                                  disabled={paint.type !== 'standard'}
-                                  className="w-full bg-slate-50 border-2 rounded-xl p-4 text-sm font-black outline-none shadow-sm transition-all focus:border-blue-600 disabled:bg-slate-200" 
-                                  value={paint.standardColor} 
-                                  onChange={e => setPaint({...paint, standardColor: e.target.value})}
-                                >
-                                  <option value="">選択</option>
-                                  {(selectedSeries === 'Fusion' 
-                                    ? FUSION_STANDARD_COLORS 
-                                    : (selectedSeries === 'NEO' 
-                                      ? NEO_STANDARD_COLORS 
-                                      : (selectedSeries === 'MX_MR' ? MX_MR_STANDARD_COLORS : STANDARD_COLORS))
-                                  ).map(c => (
-                                    <option key={c} value={c}>{c}</option>
-                                  ))}
-                                </select>
-                              </div>
-                              <div className="space-y-3">
-                                <p className="text-[10px] font-black text-blue-600 uppercase mb-1">2. 特別塗装色 / 特殊ペイント カラー指定（最大3色）</p>
-                                {[0, 1, 2].map((idx) => (
-                                  <div key={idx} className="relative">
-                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[11px] font-black text-slate-500">{idx + 1}色目</span>
-                                    <input 
-                                      type="text"
-                                      placeholder={idx === 0 ? "カラー名や番号を入力" : "(複数色の場合に入力)"}
-                                      className="w-full bg-white border-2 border-blue-100 rounded-xl py-4 pl-14 pr-4 text-sm font-black outline-none shadow-sm transition-all focus:border-blue-600 focus:ring-1 focus:ring-blue-600"
-                                      value={paint.customColors[idx]}
-                                      onChange={e => handleCustomColorChange(idx, e.target.value)}
-                                    />
-                                  </div>
-                                ))}
-                                {/* カラーガイド PDF リンク */}
-                                <div className="pt-2">
-                                  <a 
-                                    href="https://www.oxgroup.co.jp/wp/wp-content/uploads/2024/12/ColorGuide2025.08_Vol.1_PDF%E7%89%88.pdf" 
-                                    target="_blank" 
-                                    rel="noopener noreferrer"
-                                    className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 rounded-xl border border-blue-100 hover:bg-blue-100 transition-colors text-xs font-black"
+                                {(catalogVariant === 'kids' && selectedSeries !== 'COTON') ? (
+                                  <input
+                                    type="text"
+                                    placeholder="カラー名や番号を入力"
+                                    disabled={paint.type !== 'standard'}
+                                    className="w-full bg-white border-2 border-blue-100 rounded-xl py-4 px-4 text-sm font-black outline-none shadow-sm transition-all focus:border-blue-600 focus:ring-1 focus:ring-blue-600 disabled:bg-slate-200 disabled:border-slate-200"
+                                    value={paint.standardColor ?? ''}
+                                    onChange={e => setPaint({...paint, standardColor: e.target.value})}
+                                  />
+                                ) : (
+                                  <select 
+                                    disabled={paint.type !== 'standard'}
+                                    className="w-full bg-slate-50 border-2 rounded-xl p-4 text-sm font-black outline-none shadow-sm transition-all focus:border-blue-600 disabled:bg-slate-200" 
+                                    value={paint.standardColor} 
+                                    onChange={e => setPaint({...paint, standardColor: e.target.value})}
                                   >
-                                    <ExternalLink size={14} />
-                                    カラーガイド (PDF) を表示
-                                  </a>
-                                </div>
+                                    <option value="">選択</option>
+                                    {(selectedSeries === 'Fusion' 
+                                      ? FUSION_STANDARD_COLORS 
+                                      : (selectedSeries === 'NEO' 
+                                        ? NEO_STANDARD_COLORS 
+                                        : (selectedSeries === 'MX_MR' ? MX_MR_STANDARD_COLORS : STANDARD_COLORS))
+                                    ).map(c => (
+                                      <option key={c} value={c}>{c}</option>
+                                    ))}
+                                  </select>
+                                )}
                               </div>
+                              {(paint.type === 'special_1' || paint.type === 'special_2' || paint.type === 'special_3') && (
+                                <div className="p-4 rounded-xl border-2 border-blue-500 bg-blue-50/30 space-y-3">
+                                  <p className="text-[10px] font-black text-blue-600 uppercase mb-1">2. 特別塗装色 / 特殊ペイント カラー指定（最大3色）</p>
+                                  {[0, 1, 2].map((idx) => (
+                                    <div key={idx} className="relative">
+                                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[11px] font-black text-slate-500">{idx + 1}色目</span>
+                                      <input 
+                                        type="text"
+                                        placeholder={idx === 0 ? "カラー名や番号を入力" : "(複数色の場合に入力)"}
+                                        className="w-full bg-white border-2 border-blue-100 rounded-xl py-4 pl-14 pr-4 text-sm font-black outline-none shadow-sm transition-all focus:border-blue-600 focus:ring-1 focus:ring-blue-600"
+                                        value={paint.customColors[idx]}
+                                        onChange={e => handleCustomColorChange(idx, e.target.value)}
+                                      />
+                                    </div>
+                                  ))}
+                                  {/* カラーガイド PDF リンク */}
+                                  <div className="pt-2">
+                                    <a 
+                                      href="https://www.oxgroup.co.jp/wp/wp-content/uploads/2024/12/ColorGuide2025.08_Vol.1_PDF%E7%89%88.pdf" 
+                                      target="_blank" 
+                                      rel="noopener noreferrer"
+                                      className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 rounded-xl border border-blue-100 hover:bg-blue-100 transition-colors text-xs font-black"
+                                    >
+                                      <ExternalLink size={14} />
+                                      カラーガイド (PDF) を表示
+                                    </a>
+                                  </div>
+                                </div>
+                              )}
                             </>
                           )}
                         </div>
@@ -1470,36 +1476,29 @@ const App = () => {
                       </div>
                     </div>
                   </div>
-                  <div className="bg-white rounded-[2rem] shadow-sm border border-slate-200 p-8 mb-6 relative font-bold">
-                    <h3 className="text-xl font-black mb-8 flex items-center gap-3 tracking-widest uppercase"><Settings size={24} className="text-blue-600" /> 4. 専用オプション</h3>
-                    {Object.values(armrestConfig).some(v => v) && (
-                      <div className={`border-2 rounded-2xl p-5 mb-6 grid grid-cols-1 md:grid-cols-3 gap-3 ${showMissingRequired.includes('アームレスト（高低・高さ）') || showMissingRequired.includes('アームレスト長') ? 'border-red-500 bg-red-50' : 'bg-slate-50 border border-slate-200'} ${armrestConfig.armrestLengths?.length ? 'md:grid-cols-4' : ''}`}>
-                        <select className="bg-white border rounded-xl p-3 text-sm font-bold outline-none" value={armrestSel.kind} onChange={e => setArmrestSel({ kind: e.target.value, lh: '', ah: '', al: '' })}>
-                          {!(selectedSeries === 'NEO' || selectedSeries === 'GWE' || selectedSeries === 'COTON' || (selectedSeries === 'MX_MR' && selections.baseModel?.id === 'mx_base') || (catalogVariant === 'kids' && ((selectedSeries === 'MINI_NEO_KIDS' && selections.baseModel?.id === 'kids_school') || (selectedSeries === 'MINI_NEO_JUNIOR' && selections.baseModel?.id === 'jr_school') || selectedSeries === 'MINI_NEO_A_KIDS' || selectedSeries === 'MINI_NEO_A_JUNIOR'))) && <option value="">アームレストなし</option>}
-                          {armrestConfig.arm && <option value="arm">アームレスト {(selectedSeries === 'NEO' || selectedSeries === 'GWE' || selectedSeries === 'COTON' || (selectedSeries === 'MX_MR' && selections.baseModel?.id === 'mx_base') || (catalogVariant === 'kids' && ((selectedSeries === 'MINI_NEO_KIDS' && selections.baseModel?.id === 'kids_school') || (selectedSeries === 'MINI_NEO_JUNIOR' && selections.baseModel?.id === 'jr_school') || selectedSeries === 'MINI_NEO_A_KIDS' || selectedSeries === 'MINI_NEO_A_JUNIOR'))) ? '(標準 込)' : (selectedSeries === 'MINI_NEO_TODDLER' ? '(+¥21,000)' : '(+¥22,000)')}</option>}
-                          {armrestConfig.flip && <option value="flip">はね上げ式 {(selectedSeries === 'NEO' || (selectedSeries === 'MX_MR' && selections.baseModel?.id === 'mx_base') || (catalogVariant === 'kids' && ['MINI_NEO_KIDS', 'MINI_NEO_JUNIOR', 'MINI_NEO_A_KIDS', 'MINI_NEO_A_JUNIOR'].includes(selectedSeries))) ? '(+¥6,000)' : (selectedSeries === 'MINI_NEO_TODDLER' ? '(+¥27,000)' : '(+¥28,000)')}</option>}
-                        </select>
-                        <select className="bg-white border rounded-xl p-3 text-sm font-bold outline-none disabled:opacity-20" value={armrestSel.lh} disabled={!armrestSel.kind} onChange={e => setArmrestSel(s => ({ ...s, lh: e.target.value, ah: '' }))}><option value="">-- 高低 --</option>{((armrestSel.kind === 'arm' ? armrestConfig.arm : armrestConfig.flip) || {})?.low && <option value="ロー">ロー</option>}{((armrestSel.kind === 'arm' ? armrestConfig.arm : armrestConfig.flip) || {})?.mid && <option value="ミディアム">ミディアム</option>}{((armrestSel.kind === 'arm' ? armrestConfig.arm : armrestConfig.flip) || {})?.high && <option value="ハイ">ハイ</option>}</select>
-                        <select className="bg-white border rounded-xl p-3 text-sm font-bold outline-none disabled:opacity-20" value={armrestSel.ah} disabled={!armrestSel.kind || !armrestSel.lh} onChange={e => setArmrestSel(s => ({ ...s, ah: e.target.value }))}><option value="">-- 高さ --</option>{((armrestSel.lh === 'ロー' ? (armrestSel.kind === 'arm' ? armrestConfig.arm?.low : armrestConfig.flip?.low) : armrestSel.lh === 'ミディアム' ? (armrestSel.kind === 'arm' ? armrestConfig.arm?.mid : armrestConfig.flip?.mid) : (armrestSel.kind === 'arm' ? armrestConfig.arm?.high : armrestConfig.flip?.high))?.ah || []).map(v => <option key={v} value={v}>{v}mm</option>)}</select>
-                        {armrestConfig.armrestLengths?.length && (selectedSeries === 'MINI_NEO_KIDS' || selectedSeries === 'MINI_NEO_JUNIOR') && (
-                          <select className="bg-white border rounded-xl p-3 text-sm font-bold outline-none disabled:opacity-20" value={armrestSel.al} disabled={!armrestSel.kind} onChange={e => setArmrestSel(s => ({ ...s, al: e.target.value }))}><option value="">-- アームレスト長 --</option>{armrestConfig.armrestLengths.map(al => <option key={al.no} value={al.no}>{al.label} ({al.no})</option>)}</select>
-                        )}
-                      </div>
-                    )}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                      {(currentCatalog.options || []).filter(opt => {
-                        const isArmrestGroup = ['opt_arm_l','opt_arm_h','opt_arm','opt_arm_mr','opt_arm_ln'].includes(opt.id);
-                        if (opt.id === 'opt_flip' && (Array.isArray(opt.ahLow) || Array.isArray(opt.ahHigh) || Array.isArray(opt.ah))) return false;
-                        if (catalogVariant === 'kids' && (opt.id === 'opt_arm_std' || opt.id === 'opt_flip_arm')) return false;
-                        return !isArmrestGroup;
-                      }).map(opt => (
-                        <button key={opt.id} type="button" onClick={() => toggleItem(opt, selectedOptions, setSelectedOptions)} className={`flex justify-between items-center p-5 border rounded-2xl text-left transition-all ${selectedOptions.find(o=>o.id===opt.id) ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-500' : 'border-slate-100 bg-white hover:border-blue-300'}`}>
-                          <div><p className="text-[9px] font-bold text-blue-400 mb-1 tracking-widest uppercase leading-none">{opt.no}</p><span className="text-xs font-black text-slate-700 uppercase leading-none">{opt.name}</span></div>
-                          <span className="text-xs font-mono font-black text-blue-600">{(() => { const p = itemPrice(opt); return p == null ? '未設定' : (p >= 0 ? '+' : '') + yen(p); })()}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
+                  <SpecialOptionsSection
+                    SettingsIcon={Settings}
+                    armrestConfig={armrestConfig}
+                    armrestSel={armrestSel}
+                    setArmrestSel={setArmrestSel}
+                    showMissingRequired={showMissingRequired}
+                    selectedSeries={selectedSeries}
+                    selections={selections}
+                    catalogVariant={catalogVariant}
+                    currentCatalog={currentCatalog}
+                    selectedOptions={selectedOptions}
+                    setSelectedOptions={setSelectedOptions}
+                    dimensions={dimensions}
+                    itemPriceWithPackage={itemPriceWithPackage}
+                    getPrice={getPrice}
+                    yen={yen}
+                    toggleItem={toggleItem}
+                    optionsForGrid={optionsForGrid}
+                    setPush={kidsOptionHandlers.setPush}
+                    setWheelie={kidsOptionHandlers.setWheelie}
+                    setFender={kidsOptionHandlers.setFender}
+                    setCushionTbl={kidsOptionHandlers.setCushionTbl}
+                  />
                   <div className="bg-slate-900 rounded-[2.5rem] p-8 text-white relative overflow-hidden mb-8 border border-blue-500/20">
                     <h3 className="text-xl font-black mb-8 flex items-center gap-3 tracking-widest uppercase"><Heart size={24} className="text-blue-400" /> 5. アクセサリー</h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -1609,7 +1608,7 @@ const App = () => {
                     {[...selectedOptions, ...selectedAccessories].filter(o => o.__group !== 'ARMREST').map((opt, i) => (
                       <div key={i} className="flex justify-between items-center p-3 md:p-5 bg-[#f8fafc] rounded-xl border transition-all hover:bg-white shadow-sm">
                         <div className="flex items-center gap-5"><span className="bg-blue-600 text-white text-[10px] px-4 py-2 rounded-full font-black font-mono tracking-widest">{opt.no}</span><span className="text-[11px] font-black text-slate-700 tracking-tight">{opt.name}</span></div>
-                        <span className="text-xs font-mono font-black text-blue-600">{(() => { const p = itemPrice(opt); return p == null ? '未設定' : (p >= 0 ? '+' : '') + '¥' + p.toLocaleString(); })()}</span>
+                        <span className="text-xs font-mono font-black text-blue-600">{(() => { const pkgIdForPrice = (selectedSeries === 'MINI_NEO_KIDS' || selectedSeries === 'MINI_NEO_JUNIOR') ? selections.baseModel?.id : selections.package?.id; const p = itemPriceWithPackage(opt, pkgIdForPrice) ?? itemPrice(opt); return p == null ? '未設定' : (p >= 0 ? '+' : '') + '¥' + p.toLocaleString(); })()}</span>
                       </div>
                     ))}
                   </div>

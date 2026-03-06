@@ -27,8 +27,18 @@ export function calcPrice({ catalog, priceMaster, selections, dims }) {
     console.warn('[PRICE_MASTER] 未登録の priceKey:', key);
     return null;
   };
+  const effectivePackageId = (dims.selectedSeries === 'MINI_NEO_KIDS' || dims.selectedSeries === 'MINI_NEO_JUNIOR')
+    ? selections.baseModel?.id
+    : selections.package?.id;
+  const isEnjoy = () => effectivePackageId === 'kids_enjoy' || effectivePackageId === 'jr_enjoy';
+  const isSchool = () => effectivePackageId === 'kids_school' || effectivePackageId === 'jr_school';
   const itemPrice = (item) => {
     if (!item) return 0;
+    if (item.priceKeyEnjoy != null && item.priceKeySchool != null) {
+      const key = isEnjoy() ? item.priceKeyEnjoy : (isSchool() ? item.priceKeySchool : item.priceKeyEnjoy);
+      return getPrice(key);
+    }
+    if (item.priceKeySchool != null && (isSchool())) return getPrice(item.priceKeySchool);
     if (item.priceKey) return getPrice(item.priceKey);
     return item.price != null ? item.price : 0;
   };
