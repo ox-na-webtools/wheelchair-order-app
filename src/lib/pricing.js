@@ -20,7 +20,13 @@
  * @returns {{ totalAmount: number, totalLineItems: Array<{label:string, name:string, no:string, price:number}> }}
  */
 export function calcPrice({ catalog, priceMaster, selections, dims }) {
-  const getPrice = (key) => (key && priceMaster[key] != null ? priceMaster[key] : 0);
+  const getPrice = (key) => {
+    if (!key) return 0;
+    if (priceMaster != null && Object.prototype.hasOwnProperty.call(priceMaster, key))
+      return priceMaster[key];
+    console.warn('[PRICE_MASTER] 未登録の priceKey:', key);
+    return null;
+  };
   const itemPrice = (item) => {
     if (!item) return 0;
     if (item.priceKey) return getPrice(item.priceKey);
@@ -29,6 +35,7 @@ export function calcPrice({ catalog, priceMaster, selections, dims }) {
 
   const {
     selectedSeries,
+    catalogVariant,
     frameParts,
     paint,
     gweUnitDetail,
@@ -65,19 +72,20 @@ export function calcPrice({ catalog, priceMaster, selections, dims }) {
   let sum = 0;
   const list = [selections.baseModel, selections.package, selections.axleType, selections.casterFork, selections.brake, selections.footrest, selections.wheel, handrimResolved, casterWheelType];
   list.forEach((item) => {
-    if (item) sum += itemPrice(item);
+    if (item) sum += (itemPrice(item) ?? 0);
   });
   const activePlan = paintPlans && paintPlans.find((p) => p.id === paint.type);
-  if (activePlan) sum += getPrice(activePlan.priceKey);
+  const paintPlanPriceKey = (catalogVariant === 'kids' && selectedSeries !== 'COTON' && paint.type === 'special_1') ? 'paint.special_1_kids' : (activePlan?.priceKey);
+  if (activePlan) sum += (getPrice(paintPlanPriceKey) ?? 0);
   if (selectedSeries === 'COTON' && frameParts?.seat?.price) sum += frameParts.seat.price;
-  (selectedOptions || []).forEach((o) => sum += itemPrice(o));
-  (selectedAccessories || []).forEach((a) => sum += itemPrice(a));
+  (selectedOptions || []).forEach((o) => sum += (itemPrice(o) ?? 0));
+  (selectedAccessories || []).forEach((a) => sum += (itemPrice(a) ?? 0));
   if (selectedSeries === 'GWE' && gweUnitDetail?.unitId && gweUnitDetailMaster) {
     const u = gweUnitDetailMaster[gweUnitDetail.unitId];
     if (u) {
-      sum += getPrice(u.basePriceKey);
+      sum += (getPrice(u.basePriceKey) ?? 0);
       Object.values(gweUnitDetail.parts || {}).forEach((p) => {
-        if (p) sum += itemPrice(p);
+        if (p) sum += (itemPrice(p) ?? 0);
       });
     }
   }
@@ -143,7 +151,7 @@ export function calcPrice({ catalog, priceMaster, selections, dims }) {
     const armName = armrestOpt.note ? `${armrestOpt.name} (${armrestOpt.note})` : armrestOpt.name;
     items.push({ label: 'アームレスト', name: armName, no: armrestOpt.no || '-', price: armrestOpt.price != null ? armrestOpt.price : itemPrice(armrestOpt) });
   }
-  if (activePlan) items.push({ label: '塗装プラン', name: activePlan.name, no: '塗装', price: getPrice(activePlan.priceKey) });
+  if (activePlan) items.push({ label: '塗装プラン', name: activePlan.name, no: '塗装', price: getPrice(paintPlanPriceKey) });
   let colorDisplay = paint.type === 'standard' ? (paint.standardColor || '選択') : '';
   if (paint.type !== 'standard') {
     const customColors = (paint.customColors || []).filter((c) => c && c.trim() !== '');

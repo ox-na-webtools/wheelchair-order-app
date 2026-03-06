@@ -28,15 +28,16 @@ const UserCheck = (p) => <Icon {...p}><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00
 const getPrice = (key) => {
   if (!key) return 0;
   if (window.calcGetPrice) return window.calcGetPrice(key);
-  return key && window.PRICE_MASTER && window.PRICE_MASTER[key] != null
-    ? window.PRICE_MASTER[key]
-    : 0;
+  const master = window.PRICE_MASTER;
+  if (master && Object.prototype.hasOwnProperty.call(master, key)) return master[key];
+  console.warn('[PRICE_MASTER] 未登録の priceKey:', key);
+  return null;
 };
 const itemPrice = (item) => {
   if (!item) return 0;
   if (window.calcItemPrice) return window.calcItemPrice(item);
   if (item.priceKey) return getPrice(item.priceKey);
-  return item.price || 0;
+  return item.price != null ? item.price : 0;
 };
 const yen = (v) => `¥${(Number(v) || 0).toLocaleString()}`;
 // トップページ：オーダー / キッズの分岐
@@ -91,9 +92,9 @@ const SelectionGroup = ({ title, items, selectionKey, dynamicNameFn, isInvalid, 
     <div className="p-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
       {(items || []).map(item => (
         <button key={item.id} type="button" onClick={() => setSelections(prev => ({ ...prev, [selectionKey]: item }))} className={`flex flex-col p-3 border rounded-xl text-left transition-all text-sm ${selections[selectionKey]?.id === item.id ? 'border-blue-600 bg-blue-50 ring-1 ring-blue-600' : 'border-slate-100 bg-white hover:border-blue-300'}`}>
-          <span className="text-[10px] font-black text-blue-500 uppercase mb-1">{item.no}</span>
+          <span className="text-[11px] font-black text-blue-600 uppercase mb-1">{item.no}</span>
           <span className="text-sm font-bold text-slate-700 leading-tight">{dynamicNameFn ? dynamicNameFn(item) : item.name}</span>
-          <span className="text-[11px] font-mono font-black text-slate-400 mt-2">{itemPrice(item) === 0 ? "標準" : (itemPrice(item) > 0 ? `+¥${itemPrice(item).toLocaleString()}` : `¥${itemPrice(item).toLocaleString()}`)}</span>
+          <span className="text-xs font-mono font-black text-slate-500 mt-2">{(() => { const p = itemPrice(item); return p == null ? "未設定" : (p === 0 ? "標準" : (p > 0 ? `+¥${p.toLocaleString()}` : `¥${p.toLocaleString()}`)); })()}</span>
         </button>
       ))}
     </div>
@@ -243,8 +244,8 @@ const App = () => {
       });
   }, [selectedSeries]);
   const camberOptions = useMemo(() => {
-    if (selections.axleType?.id === 'axle_b') return ['0°'];
-    return currentCatalog?.dimensionRules?.camber || ['0°'];
+    if (selections.axleType?.id === 'axle_b') return ['0'];
+    return currentCatalog?.dimensionRules?.camber || ['0'];
   }, [selections.axleType, currentCatalog]);
   const armrestConfig = useMemo(() => {
     if (!currentCatalog?.options) return { arm: null, flip: null };
@@ -267,7 +268,8 @@ const App = () => {
       const isKidsOrJrSchool = (selectedSeries === 'MINI_NEO_KIDS' && selections.baseModel?.id === 'kids_school') || (selectedSeries === 'MINI_NEO_JUNIOR' && selections.baseModel?.id === 'jr_school');
       const isAKidsOrAJr = selectedSeries === 'MINI_NEO_A_KIDS' || selectedSeries === 'MINI_NEO_A_JUNIOR';
       const isKidsOrJr = selectedSeries === 'MINI_NEO_KIDS' || selectedSeries === 'MINI_NEO_JUNIOR';
-      armBase = (isKidsOrJrSchool || isAKidsOrAJr || isKidsOrJr) ? findById('opt_arm_std') : null;
+      const isToddler = selectedSeries === 'MINI_NEO_TODDLER';
+      armBase = (isKidsOrJrSchool || isAKidsOrAJr || isKidsOrJr || isToddler) ? findById('opt_arm_std') : null;
       flipBase = findById('opt_flip_arm');
     } else {
       armBase = (selectedSeries === 'MX_MR') ? (selections.baseModel?.id === 'mr_base' ? findById('opt_arm_mr') : null) || findById('opt_arm') || findByNameIncludes('アームレスト') : findById('opt_arm') || findById('opt_arm_ln') || findByNameIncludes('アームレスト');
@@ -276,16 +278,19 @@ const App = () => {
     const buildFromCombined = (obj, baseName) => {
       if (!obj) return null;
       const m = (obj.no || '').split('/');
-      const no = { low: m[0]?.trim() || obj.no, high: m[1]?.trim() || obj.no };
+      const no = { low: m[0]?.trim() || obj.no, mid: m[0]?.trim() || obj.no, high: m[1]?.trim() || obj.no };
       const hLabel = frameParts?.height?.label ?? frameParts?.height ?? '';
       const hs = String(hLabel);
       const hk = hs.includes('フラット') ? 'フラット' : hs.includes('ハイ') ? 'ハイ' : 'レギュラー';
       const lowAh = (obj.ahLowByHeight && obj.ahLowByHeight[hk]) || (Array.isArray(obj.ahLow) ? obj.ahLow : (Array.isArray(obj.ah) ? obj.ah : []));
+      const midAh = (Array.isArray(obj.ahMid) ? obj.ahMid : []);
       const highAh = (obj.ahHighByHeight && obj.ahHighByHeight[hk]) || (Array.isArray(obj.ahHigh) ? obj.ahHigh : (Array.isArray(obj.ah) ? obj.ah : []));
-      return {
-        low:  { id: `${obj.id}__low__armgrp`,  baseId: obj.id, name: `${baseName} ロー`,  no: no.low,  price: obj.price || 0, ah: lowAh },
-        high: { id: `${obj.id}__high__armgrp`, baseId: obj.id, name: `${baseName} ハイ`, no: no.high, price: obj.price || 0, ah: highAh },
+      const result = {
+        low:  lowAh.length  ? { id: `${obj.id}__low__armgrp`,  baseId: obj.id, name: `${baseName} ロー`,  no: no.low,  price: obj.price || 0, ah: lowAh } : null,
+        mid:  midAh.length  ? { id: `${obj.id}__mid__armgrp`,  baseId: obj.id, name: `${baseName} ミディアム`, no: no.mid,  price: obj.price || 0, ah: midAh } : null,
+        high: highAh.length ? { id: `${obj.id}__high__armgrp`, baseId: obj.id, name: `${baseName} ハイ`, no: no.high, price: obj.price || 0, ah: highAh } : null,
       };
+      return result;
     };
     let arm, flip;
     if (zzrLow || zzrHigh) {
@@ -313,7 +318,9 @@ const App = () => {
     let calculatedPrice = base.price || 0;
     const isStandardZeroSeries = (selectedSeries === 'NEO' || selectedSeries === 'GWE' || selectedSeries === 'COTON' || (selectedSeries === 'MX_MR' && selections.baseModel?.id === 'mx_base'));
     const isKidsArmrestSeries = catalogVariant === 'kids' && ['MINI_NEO_KIDS', 'MINI_NEO_JUNIOR', 'MINI_NEO_A_KIDS', 'MINI_NEO_A_JUNIOR'].includes(selectedSeries);
-    if (isStandardZeroSeries) {
+    if (selectedSeries === 'MINI_NEO_TODDLER') {
+      calculatedPrice = base.price ?? 0;
+    } else if (isStandardZeroSeries) {
       calculatedPrice = (selectedSeries === 'COTON' || armrestSel.kind === 'arm') ? 0 : 6000;
     } else if (isKidsArmrestSeries) {
       const isKidsOrJrSchool = (selectedSeries === 'MINI_NEO_KIDS' && selections.baseModel?.id === 'kids_school') || (selectedSeries === 'MINI_NEO_JUNIOR' && selections.baseModel?.id === 'jr_school');
@@ -555,13 +562,14 @@ const App = () => {
     }
     return item.name;
   }, [selectedSeries, frameParts.height]);
-  // MX/MR/NEO / キッズカタログ: ハンドリムはアルマイト標準0円・ビニール+5000円、番号なし
+  // MX/MR/NEO / キッズカタログ: ハンドリムはアルマイト標準0円・ビニール追加料金、番号なし
   const handrimOptionsForDisplay = useMemo(() => {
     if (selectedSeries === 'MX_MR' || selectedSeries === 'NEO' || catalogVariant === 'kids') {
       return HANDRIM_OPTIONS.map(hr => {
         if (hr.id === 'hr_vinyl') {
-          // ビニールコーティングのみ追加料金（マスター参照）
-          return { ...hr, no: '', priceKey: 'handrim.vinyl.mxneo_extra' };
+          // キッズは3000円、それ以外は5000円（マスター参照）
+          const priceKey = catalogVariant === 'kids' ? 'handrim.vinyl.kids_extra' : 'handrim.vinyl.mxneo_extra';
+          return { ...hr, no: '', priceKey };
         }
         // それ以外は 0 円（priceKey なし）
         return { ...hr, no: '', priceKey: undefined };
@@ -583,6 +591,7 @@ const App = () => {
     selections,
     dims: {
       selectedSeries,
+      catalogVariant,
       frameParts,
       paint,
       gweUnitDetail,
@@ -595,7 +604,7 @@ const App = () => {
       gweUnitDetailMaster: GWE_UNIT_DETAIL_MASTER,
       wheelNoMaster: WHEEL_NO_MASTER,
     },
-  }), [currentCatalog, selections, selectedSeries, frameParts, paint, gweUnitDetail, selectedOptions, selectedAccessories, casterWheelType, casterWheelSize, handrimResolved]);
+  }), [currentCatalog, selections, selectedSeries, catalogVariant, frameParts, paint, gweUnitDetail, selectedOptions, selectedAccessories, casterWheelType, casterWheelSize, handrimResolved]);
   const performSeriesReset = useCallback((key) => {
     setSelectedSeries(key);
     setSelections({
@@ -685,7 +694,7 @@ const App = () => {
     rows.push(["【01. 基本パーツ構成】"]);
     rows.push(["項目", "パーツ名", "記入No.", "加算額"]);
     totalLineItems.forEach(item => {
-      const priceStr = item.price === 0 ? "込" : (item.price > 0 ? `+${item.price}` : `${item.price}`);
+      const priceStr = item.price == null ? "未設定" : (item.price === 0 ? "込" : (item.price > 0 ? `+${item.price}` : `${item.price}`));
       rows.push([item.label, item.name, item.no, priceStr]);
     });
     rows.push([]);
@@ -696,7 +705,7 @@ const App = () => {
       rows.push(["No.", "品名", "金額"]);
       extras.forEach(opt => {
         const p = itemPrice(opt);
-        rows.push([opt.no, opt.name, p >= 0 ? `+${p}` : `${p}`]);
+        rows.push([opt.no, opt.name, p == null ? "未設定" : (p >= 0 ? `+${p}` : `${p}`)]);
       });
       rows.push([]);
     }
@@ -777,7 +786,7 @@ const App = () => {
       `【構成内容】`,
       `機種: ${series}`,
       ...totalLineItems.map(item =>
-        `${item.label}: ${item.name || ''}${item.no ? ' [No.' + item.no + ']' : ''}${item.price ? ' ¥' + item.price.toLocaleString() : (item.price === 0 ? ' 込' : '')}`
+        `${item.label}: ${item.name || ''}${item.no ? ' [No.' + item.no + ']' : ''}${item.price == null ? ' 未設定' : (item.price === 0 ? ' 込' : ' ¥' + item.price.toLocaleString())}`
       ),
       ``,
       `【指定寸法】`,
@@ -815,27 +824,49 @@ const App = () => {
       )}
       {showTotalBreakdown && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[120] flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full overflow-hidden my-auto">
+            <div className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full overflow-hidden my-auto">
             <div className="bg-slate-900 text-white px-6 py-5 flex items-center justify-between">
               <h3 className="text-lg font-black tracking-tighter">合計 内訳</h3>
-              <button className="text-[10px] font-black bg-white/10 px-4 py-2 rounded-xl" onClick={() => setShowTotalBreakdown(false)}>閉じる</button>
+              <button className="text-[11px] font-black bg-white/10 px-4 py-2 rounded-xl" onClick={() => setShowTotalBreakdown(false)}>閉じる</button>
             </div>
             <div className="p-6 max-h-[50vh] overflow-y-auto bg-slate-50/50 border-b">
               <div className="space-y-2">
                 {totalLineItems.map((x, i) => (
                   <div key={i} className="flex items-start justify-between border-b border-slate-100 pb-3">
                     <div className="min-w-0">
-                      <p className="text-[10px] font-black text-slate-400 uppercase">{x.label}</p>
+                      <p className="text-[11px] font-black text-slate-600 uppercase">{x.label}</p>
                       <p className="text-sm font-black text-slate-800 tracking-tighter">{x.name}</p>
                     </div>
-                    <p className="text-sm font-mono font-black text-slate-700">{x.price === 0 ? '込' : (x.price > 0 ? `+¥${x.price.toLocaleString()}` : `¥${x.price.toLocaleString()}`)}</p>
+                    <p className="text-sm font-mono font-black text-slate-700">
+                      {x.price === 0 ? '込' : (x.price > 0 ? `+¥${x.price.toLocaleString()}` : `¥${x.price.toLocaleString()}`)}
+                    </p>
                   </div>
                 ))}
               </div>
               <div className="mt-6 flex items-end justify-between pt-4">
-                <p className="text-[10px] font-black text-slate-400 uppercase">Estimated Total</p>
+                <p className="text-[11px] font-black text-slate-600 uppercase">Estimated Total</p>
                 <p className="text-2xl font-black font-mono text-blue-600">¥{totalAmount.toLocaleString()}</p>
               </div>
+              {([...selectedOptions, ...selectedAccessories].filter(o => o && o.__group !== 'ARMREST').length > 0) && (
+                <div className="mt-8 pt-4 border-t border-slate-200">
+                  <p className="text-[11px] font-black text-slate-600 uppercase mb-3">Options & Accessories</p>
+                  <div className="space-y-2">
+                    {[...selectedOptions, ...selectedAccessories].filter(o => o && o.__group !== 'ARMREST').map((opt, i) => (
+                      <div key={opt.id || i} className="flex items-center justify-between text-[11px]">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="inline-flex items-center justify-center px-2 py-1 rounded-full bg-slate-900 text-white text-[9px] font-mono tracking-widest">
+                            {opt.no}
+                          </span>
+                          <span className="font-black text-slate-700 truncate">{opt.name}</span>
+                        </div>
+                        <span className="text-[11px] font-mono font-black text-slate-700">
+                          {(() => { const p = itemPrice(opt); return p == null ? '未設定' : (p >= 0 ? '+' : '') + yen(p); })()}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
             {/* 顧客情報入力欄 (モーダル内) */}
             <div className="p-6 bg-white space-y-6">
@@ -845,8 +876,8 @@ const App = () => {
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <label className="text-[9px] font-black text-slate-400 uppercase flex items-center gap-1.5">
-                    <Store size={10} /> 販売店名 <span className="text-red-500 text-[8px]">※必須</span>
+                  <label className="text-[11px] font-black text-slate-600 uppercase flex items-center gap-1.5">
+                    <Store size={12} /> 販売店名 <span className="text-red-500 text-[10px]">※必須</span>
                   </label>
                   <input 
                     type="text" 
@@ -857,8 +888,8 @@ const App = () => {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-[9px] font-black text-slate-400 uppercase flex items-center gap-1.5">
-                    <User size={10} /> 販売店担当者名 <span className="text-red-500 text-[8px]">※必須</span>
+                  <label className="text-[11px] font-black text-slate-600 uppercase flex items-center gap-1.5">
+                    <User size={12} /> 販売店担当者名 <span className="text-red-500 text-[10px]">※必須</span>
                   </label>
                   <input 
                     type="text" 
@@ -869,8 +900,8 @@ const App = () => {
                   />
                 </div>
                 <div className="md:col-span-2 space-y-1.5">
-                  <label className="text-[9px] font-black text-slate-400 uppercase flex items-center gap-1.5">
-                    <User size={10} /> ユーザー名（任意）
+                  <label className="text-[11px] font-black text-slate-600 uppercase flex items-center gap-1.5">
+                    <User size={12} /> ユーザー名（任意）
                   </label>
                   <input 
                     type="text" 
@@ -923,7 +954,7 @@ const App = () => {
             <div className={`${accent.navIcon} p-2.5 rounded-xl`}><Settings size={20} /></div>
             <div>
               <h1 className="font-black text-base md:text-lg leading-none uppercase tracking-widest">Configurator</h1>
-              <p className="text-[9px] opacity-40 uppercase tracking-[0.3em] mt-1 font-bold">2025 v5.9 Stable</p>
+              <p className="text-[11px] opacity-60 uppercase tracking-[0.3em] mt-1 font-bold">2025 v5.9 Stable</p>
             </div>
             <button
               type="button"
@@ -936,10 +967,10 @@ const App = () => {
           </div>
           <div className="flex items-center gap-6 min-w-0 flex-1 justify-end">
             <div className="flex flex-col text-right min-w-0 shrink-0">
-              <span className={`text-[10px] font-bold ${accent.subtotal} uppercase mb-1 leading-none`}>Subtotal</span>
+              <span className={`text-xs font-bold ${accent.subtotal} uppercase mb-1 leading-none`}>Subtotal</span>
               <span className={`text-lg md:text-2xl font-black font-mono tracking-tighter ${accent.subtotal} leading-none`}>¥{totalAmount.toLocaleString()}</span>
               {showMissingRequired.length > 0 && (
-                <span className="text-[9px] text-amber-400 mt-1 leading-none">未選択の項目があります</span>
+                <span className="text-[11px] font-bold text-amber-400 mt-1 leading-none">未選択の項目があります</span>
               )}
             </div>
           </div>
@@ -991,7 +1022,7 @@ const App = () => {
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                   {Object.keys(catalog).map(key => (
                     <button key={key} type="button" onClick={() => handleSeriesSelect(key)} className={`p-4 border-2 rounded-2xl transition-all text-left ${selectedSeries === key ? `${accent.sectionBorder} ${accent.sectionBg} ring-1 ${accent.sectionRing}` : 'border-slate-100 bg-white hover:border-blue-300'}`}>
-                      <p className={`text-[10px] font-bold mb-1 uppercase tracking-widest ${selectedSeries === key ? accent.sectionIcon : 'text-slate-400'}`}>Model</p>
+                      <p className={`text-[11px] font-bold mb-1 uppercase tracking-widest ${selectedSeries === key ? accent.sectionIcon : 'text-slate-600'}`}>Model</p>
                       <p className="font-black text-sm md:text-base tracking-tighter uppercase">{catalog[key].title}</p>
                     </button>
                   ))}
@@ -1015,9 +1046,9 @@ const App = () => {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
                           {Object.keys(GWE_UNIT_DETAIL_MASTER).map(uid => (
                             <button type="button"  key={uid} onClick={() => setGweUnitDetail(prev => prev.unitId === uid ? { unitId: '', parts: {} } : { unitId: uid, parts: {} })} className={`p-5 border rounded-2xl text-left transition-all ${gweUnitDetail.unitId === uid ? 'border-blue-600 bg-blue-50 ring-1 ring-blue-600' : 'border-slate-100 bg-white hover:border-blue-300'}`}>
-                              <p className="text-[10px] font-black text-blue-500 uppercase mb-2 tracking-widest">{GWE_UNIT_DETAIL_MASTER[uid].no}</p>
+                              <p className="text-[11px] font-black text-blue-600 uppercase mb-2 tracking-widest">{GWE_UNIT_DETAIL_MASTER[uid].no}</p>
                               <p className="text-sm font-black text-slate-800 leading-none">{GWE_UNIT_DETAIL_MASTER[uid].name}</p>
-                              <p className="text-[11px] font-mono font-black text-slate-400 mt-3">+¥{getPrice(GWE_UNIT_DETAIL_MASTER[uid].basePriceKey).toLocaleString()}</p>
+                              <p className="text-xs font-mono font-black text-slate-500 mt-3">{(() => { const p = getPrice(GWE_UNIT_DETAIL_MASTER[uid].basePriceKey); return p == null ? '未設定' : `+¥${p.toLocaleString()}`; })()}</p>
                             </button>
                           ))}
                         </div>
@@ -1027,13 +1058,13 @@ const App = () => {
                               const gweGroupInvalid = showMissingRequired.includes(`電動ユニット - ${g.label}`);
                               return (
                               <div key={g.key} className={`rounded-2xl p-4 border-2 ${gweGroupInvalid ? 'border-red-500 bg-red-50' : 'border border-slate-200 bg-white'}`}>
-                                <label className="block text-[10px] font-black text-slate-400 uppercase mb-2">{g.label}</label>
+                                <label className="block text-xs font-black text-slate-600 uppercase mb-2">{g.label}</label>
                                 <select className="w-full bg-slate-50 border-2 rounded-xl p-3 text-sm font-black outline-none" value={gweUnitDetail.parts?.[g.key]?.id || ''} onChange={e => {
                                   const choice = g.choices.find(c => c.id === e.target.value);
                                   setGweUnitDetail(prev => ({ ...prev, parts: { ...prev.parts, [g.key]: choice } }));
                                 }}>
                                   <option value="">-- 選択 --</option>
-                                  {g.choices.map(c => <option key={c.id} value={c.id}>{c.no} {c.name} {c.priceKey ? `(+¥${getPrice(c.priceKey).toLocaleString()})` : ''}</option>)}
+                                  {g.choices.map(c => <option key={c.id} value={c.id}>{c.no} {c.name} {c.priceKey ? (() => { const p = getPrice(c.priceKey); return p == null ? '(未設定)' : `(+¥${p.toLocaleString()})`; })() : ''}</option>)}
                                 </select>
                               </div>
                             ); })}
@@ -1057,7 +1088,7 @@ const App = () => {
                           const frameCatInvalid = showMissingRequired.includes(frameCatLabel);
                           return (
                           <div key={cat} className={`space-y-3 rounded-xl p-3 border-2 ${frameCatInvalid ? 'border-red-500 bg-red-50' : 'border-transparent'}`}>
-                            <label className="block text-[10px] font-black text-slate-400 uppercase mb-1 tracking-widest">
+                            <label className="block text-xs font-black text-slate-600 uppercase mb-1 tracking-widest">
                               {cat === 'type' ? 'フレームタイプ' : cat === 'shape' ? (selectedSeries === 'NEO' ? 'フレーム前方形状' : '前方形状') : cat === 'length' ? '長さ' : cat === 'height' ? '高さ' : cat === 'size' ? 'サイズ' : cat === 'seat' ? 'シート' : 'フロントパイプ'}
                             </label>
                             <div className="flex flex-col gap-1.5">
@@ -1069,7 +1100,7 @@ const App = () => {
                                     <div className="flex items-center justify-between gap-3">
                                       <span className="text-xs font-black">{optObj.label}</span>
                                       <div className="flex items-center gap-2">
-                                        {optObj.no && <span className={`text-[10px] font-mono font-black ${frameParts[cat]?.label === optObj.label ? 'text-white/90' : 'text-slate-400'}`}>{optObj.no}</span>}
+                                        {optObj.no && <span className={`text-[11px] font-mono font-black ${frameParts[cat]?.label === optObj.label ? 'text-white/90' : 'text-slate-600'}`}>{optObj.no}</span>}
                                         {price > 0 && <span className={`text-[10px] font-mono font-black ${frameParts[cat]?.label === optObj.label ? 'text-white/90' : 'text-blue-600'}`}>+¥{price.toLocaleString()}</span>}
                                       </div>
                                     </div>
@@ -1099,17 +1130,17 @@ const App = () => {
                     <div className={`px-5 py-3 border-b font-bold text-slate-800 tracking-widest uppercase text-xs ${casterBlockInvalid ? 'border-red-200 bg-red-100' : 'border-slate-200 bg-slate-50'}`}>キャスターホイール</div>
                     <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-8">
                       <div className={casterTypeInvalid ? 'rounded-xl p-3 border-2 border-red-500 bg-red-50' : ''}>
-                        <label className="block text-[10px] font-black text-slate-400 uppercase mb-2">A. 種類</label>
+                        <label className="block text-xs font-black text-slate-600 uppercase mb-2">A. 種類</label>
                         <div className="grid grid-cols-1 gap-2">
                           {seriesCasterData.filter(cw => currentCatalog.hasCushionCaster || cw.type !== 'クッションキャスター').map(cw => (
                             <button type="button"  key={cw.type} onClick={() => { setCasterWheelType(cw); setCasterWheelSize(null); }} className={`p-4 text-left border rounded-xl text-sm font-bold transition-all ${casterWheelType?.type === cw.type ? 'bg-blue-600 text-white border-blue-600 shadow-md' : 'bg-white text-slate-600 hover:border-blue-300 shadow-sm'}`}>
-                              {cw.type} (+¥{itemPrice(cw).toLocaleString()})
+                              {cw.type} {(() => { const p = itemPrice(cw); return p == null ? '未設定' : `(+¥${p.toLocaleString()})`; })()}
                             </button>
                           ))}
                         </div>
                       </div>
                       <div className={casterSizeInvalid ? 'rounded-xl p-3 border-2 border-red-500 bg-red-50' : ''}>
-                        <label className="block text-[10px] font-black text-slate-400 uppercase mb-2">B. サイズ</label>
+                        <label className="block text-xs font-black text-slate-600 uppercase mb-2">B. サイズ</label>
                         <select disabled={!casterWheelType} className="w-full bg-slate-50 border-2 rounded-xl p-4 text-sm font-black outline-none disabled:opacity-20 transition-all" value={casterWheelSize?.no || ''} onChange={e => setCasterWheelSize(casterWheelType?.sizes?.find(s => s.no === e.target.value))}>
                           <option value="">-- 選択 --</option>
                           {casterWheelType?.sizes?.map(s => <option key={s.no} value={s.no}>{s.label} ({s.no})</option>)}
@@ -1130,7 +1161,7 @@ const App = () => {
                           setSelections(s => ({ ...s, brake: {}, wheel: '', tire: '', handrim: '' }));
                           setDimensions(d => ({ ...d, lever: '', l8: '' }));
                         }}
-                        className="text-[11px] text-slate-400 hover:text-red-500 border border-slate-200 hover:border-red-300 bg-white px-3 py-1.5 rounded-xl transition-all flex items-center gap-1 shadow-sm"
+                        className="text-xs text-slate-600 hover:text-red-500 border border-slate-200 hover:border-red-300 bg-white px-3 py-1.5 rounded-xl transition-all flex items-center gap-1 shadow-sm"
                       >
                         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 119 9 9 9 0 01-9-9"/><path d="M3 3v5h5"/></svg>
                         ブレーキ・ホイール選択をリセット
@@ -1150,30 +1181,30 @@ const App = () => {
                         <div>
                           {!(selectedSeries === 'MX_MR' || selectedSeries === 'NEO') && (
                             <div className={`mb-6 ${wheelTypeInvalid ? 'rounded-xl p-3 border-2 border-red-500 bg-red-50' : ''}`}>
-                              <label className="block text-[10px] font-black text-slate-400 uppercase mb-2">A. 種類</label>
+                              <label className="block text-xs font-black text-slate-600 uppercase mb-2">A. 種類</label>
                               <div className="grid grid-cols-1 gap-2">
                                 {(currentCatalog.wheels || []).map(w => (
                                   <button type="button"  key={w.id} onClick={() => setSelections(prev => ({...prev, wheel: w, wheelSize: (currentCatalog.wheelSizes || WHEEL_SIZE_RULES?.[w.id] || ['24インチ'])[0]}))} className={`p-4 text-left border rounded-xl text-xs font-bold transition-all ${selections.wheel?.id === w.id ? 'border-blue-600 bg-blue-50 ring-1 ring-blue-600 shadow-sm' : 'border-slate-100 bg-white hover:border-blue-300 shadow-sm'}`}>
-                                    <span className="text-[9px] block opacity-70 uppercase leading-none mb-1">{getWheelNo(w, selections.wheelSize)}</span>{w.name} (+¥{w.price.toLocaleString()})
+                                    <span className="text-[11px] block opacity-80 uppercase leading-none mb-1 text-slate-600">{getWheelNo(w, selections.wheelSize)}</span>{w.name} (+¥{w.price.toLocaleString()})
                                   </button>
                                 ))}
                               </div>
                             </div>
                           )}
                           <div className={`mb-6 ${wheelSizeInvalid ? 'rounded-xl p-3 border-2 border-red-500 bg-red-50' : ''}`}>
-                            <label className="block text-[10px] font-black text-slate-400 uppercase mb-2">B. サイズ</label>
+                            <label className="block text-xs font-black text-slate-600 uppercase mb-2">B. サイズ</label>
                             <select className="w-full bg-slate-50 border-2 rounded-xl p-4 text-sm font-black outline-none transition-all" value={selections.wheelSize} onChange={e => setSelections({...selections, wheelSize: e.target.value})}>
                               { (selectedSeries === 'LX_LR' || selectedSeries === 'FX_FR') ? ['24インチ'].map(v => <option key={v} value={v}>{v}</option>) : (selectedSeries === 'MX_MR' || selectedSeries === 'NEO') ? ['22インチ','23インチ','24インチ','25インチ'].map(v => <option key={v} value={v}>{v}</option>) : (currentCatalog.wheelSizes || WHEEL_SIZE_RULES?.[selections.wheel?.id] || ['--']).map(v => <option key={v} value={v} disabled={currentCatalog.blockSmallWheels && (v==='22インチ' || v==='23インチ')}>{v}</option>) }
                             </select>
                           </div>
                           {currentCatalog?.tireBrand && (
                             <div className={`mb-6 ${tireInvalid ? 'rounded-xl p-3 border-2 border-red-500 bg-red-50' : ''}`}>
-                              <label className="block text-[10px] font-black text-slate-400 uppercase mb-2">C. タイヤカラー ({currentCatalog.tireBrand})</label>
+                              <label className="block text-xs font-black text-slate-600 uppercase mb-2">C. タイヤカラー ({currentCatalog.tireBrand})</label>
                               <div className="grid grid-cols-2 gap-2">
                                 {availableTires.map(t => (
                                   <button key={t.no} onClick={() => setSelections(prev => ({ ...prev, tire: t }))} className={`flex items-center gap-3 p-3 border rounded-xl transition-all ${selections.tire?.no === t.no ? 'border-blue-600 bg-blue-50 ring-1 ring-blue-600' : 'border-slate-100 bg-white hover:border-blue-300'}`}>
                                     <div className="w-3.5 h-3.5 rounded-full border border-slate-300 flex-shrink-0" style={{ backgroundColor: t.colorCode || '#94a3b8' }}></div>
-                                    <div className="min-w-0"><p className="text-[11px] font-bold text-slate-800 leading-none truncate">{t.name}</p><p className="text-[9px] font-mono text-slate-400 mt-1">{t.no}</p></div>
+                                    <div className="min-w-0"><p className="text-[11px] font-bold text-slate-800 leading-none truncate">{t.name}</p><p className="text-[11px] font-mono font-bold text-slate-600 mt-1">{t.no}</p></div>
                                   </button>
                                 ))}
                               </div>
@@ -1198,14 +1229,16 @@ const App = () => {
                       )}
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
                         <div className="space-y-4">
-                          <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 italic">A. 塗装プラン選択</label>
+                          <label className="block text-xs font-black text-slate-600 uppercase tracking-widest mb-4 italic">A. 塗装プラン選択</label>
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                             {PAINT_PLANS.filter(plan => {
                             if (plan.id === 'mirror' && selectedSeries !== 'ZZR') return false;
-                            if (catalogVariant === 'kids' && (plan.id === 'grand' || plan.id === 'splash' || plan.id === 'special_1')) return false;
+                            if (catalogVariant === 'kids' && (plan.id === 'grand' || plan.id === 'splash')) return false;
+                            if (catalogVariant === 'kids' && selectedSeries === 'COTON' && plan.id === 'special_1') return false;
                             return true;
                           }).map(plan => {
                               const isZzr3Restricted = selectedSeries === 'ZZR' && plan.id === 'special_3';
+                              const priceKeyForPlan = (catalogVariant === 'kids' && selectedSeries !== 'COTON' && plan.id === 'special_1') ? 'paint.special_1_kids' : plan.priceKey;
                               return (
                                 <button 
                                   key={plan.id} 
@@ -1214,10 +1247,10 @@ const App = () => {
                                   onClick={() => setPaint({ ...paint, type: plan.id })}
                                   className={`p-4 border-2 rounded-xl text-left transition-all ${paint.type === plan.id ? 'border-blue-600 bg-blue-50 ring-1 ring-blue-600' : 'border-slate-100 bg-white hover:border-blue-200'} ${isZzr3Restricted ? 'opacity-20 cursor-not-allowed' : ''}`}
                                 >
-                                  <p className="text-[10px] font-bold text-blue-500 mb-1 leading-none uppercase">Plan</p>
+                                  <p className="text-[11px] font-bold text-blue-600 mb-1 leading-none uppercase">Plan</p>
                                   <p className="text-xs font-black text-slate-700 leading-tight mb-2">{plan.name}</p>
-                                  <p className="text-[11px] font-mono font-black text-slate-400">
-                                    {getPrice(plan.priceKey) === 0 ? "標準塗装 (¥0)" : `+¥${getPrice(plan.priceKey).toLocaleString()}`}
+                                  <p className="text-xs font-mono font-black text-slate-500">
+                                    {(() => { const p = getPrice(priceKeyForPlan); return p == null ? "未設定" : (p === 0 ? "標準塗装 (¥0)" : `+¥${p.toLocaleString()}`); })()}
                                   </p>
                                 </button>
                               );
@@ -1232,53 +1265,68 @@ const App = () => {
                           )}
                         </div>
                         <div className="space-y-6">
-                          <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 italic">B. カラー指定</label>
-                          <div className={`space-y-2 ${paint.type !== 'standard' ? 'opacity-40 cursor-not-allowed' : ''}`}>
-                            <p className="text-[10px] font-black text-slate-400 uppercase mb-1">1. 標準塗装色 (ベースカラー)</p>
-                            <select 
-                              disabled={paint.type !== 'standard'}
-                              className="w-full bg-slate-50 border-2 rounded-xl p-4 text-sm font-black outline-none shadow-sm transition-all focus:border-blue-600 disabled:bg-slate-200" 
-                              value={paint.standardColor} 
-                              onChange={e => setPaint({...paint, standardColor: e.target.value})}
-                            >
-                              <option value="">選択</option>
-                              {(selectedSeries === 'Fusion' 
-                                ? FUSION_STANDARD_COLORS 
-                                : (selectedSeries === 'NEO' 
-                                  ? NEO_STANDARD_COLORS 
-                                  : (selectedSeries === 'MX_MR' ? MX_MR_STANDARD_COLORS : STANDARD_COLORS))
-                              ).map(c => (
-                                <option key={c} value={c}>{c}</option>
-                              ))}
-                            </select>
-                          </div>
-                          <div className="space-y-3">
-                            <p className="text-[10px] font-black text-blue-600 uppercase mb-1">2. 特別塗装色 / 特殊ペイント カラー指定（最大3色）</p>
-                            {[0, 1, 2].map((idx) => (
-                              <div key={idx} className="relative">
-                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[9px] font-black text-slate-300">{idx + 1}色目</span>
-                                <input 
-                                  type="text"
-                                  placeholder={idx === 0 ? "カラー名や番号を入力" : "(複数色の場合に入力)"}
-                                  className="w-full bg-white border-2 border-blue-100 rounded-xl py-4 pl-14 pr-4 text-sm font-black outline-none shadow-sm transition-all focus:border-blue-600 focus:ring-1 focus:ring-blue-600"
-                                  value={paint.customColors[idx]}
-                                  onChange={e => handleCustomColorChange(idx, e.target.value)}
-                                />
-                              </div>
-                            ))}
-                            {/* カラーガイド PDF リンク */}
-                            <div className="pt-2">
-                              <a 
-                                href="https://www.oxgroup.co.jp/wp/wp-content/uploads/2024/12/ColorGuide2025.08_Vol.1_PDF%E7%89%88.pdf" 
-                                target="_blank" 
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 rounded-xl border border-blue-100 hover:bg-blue-100 transition-colors text-xs font-black"
-                              >
-                                <ExternalLink size={14} />
-                                カラーガイド (PDF) を表示
-                              </a>
+                          <label className="block text-xs font-black text-slate-600 uppercase tracking-widest mb-4 italic">B. カラー指定</label>
+                          {catalogVariant === 'kids' && selectedSeries !== 'COTON' && paint.type === 'special_1' ? (
+                            <div className="space-y-2">
+                              <p className="text-xs font-black text-slate-600 uppercase mb-1">塗装色を入力</p>
+                              <input
+                                type="text"
+                                placeholder="塗装色を入力してください"
+                                className="w-full bg-white border-2 border-blue-100 rounded-xl py-4 px-4 text-sm font-black outline-none shadow-sm transition-all focus:border-blue-600 focus:ring-1 focus:ring-blue-600"
+                                value={paint.customColors[0] ?? ''}
+                                onChange={e => handleCustomColorChange(0, e.target.value)}
+                              />
                             </div>
-                          </div>
+                          ) : (
+                            <>
+                              <div className={`space-y-2 ${paint.type !== 'standard' ? 'opacity-40 cursor-not-allowed' : ''}`}>
+                                <p className="text-xs font-black text-slate-600 uppercase mb-1">1. 標準塗装色 (ベースカラー)</p>
+                                <select 
+                                  disabled={paint.type !== 'standard'}
+                                  className="w-full bg-slate-50 border-2 rounded-xl p-4 text-sm font-black outline-none shadow-sm transition-all focus:border-blue-600 disabled:bg-slate-200" 
+                                  value={paint.standardColor} 
+                                  onChange={e => setPaint({...paint, standardColor: e.target.value})}
+                                >
+                                  <option value="">選択</option>
+                                  {(selectedSeries === 'Fusion' 
+                                    ? FUSION_STANDARD_COLORS 
+                                    : (selectedSeries === 'NEO' 
+                                      ? NEO_STANDARD_COLORS 
+                                      : (selectedSeries === 'MX_MR' ? MX_MR_STANDARD_COLORS : STANDARD_COLORS))
+                                  ).map(c => (
+                                    <option key={c} value={c}>{c}</option>
+                                  ))}
+                                </select>
+                              </div>
+                              <div className="space-y-3">
+                                <p className="text-[10px] font-black text-blue-600 uppercase mb-1">2. 特別塗装色 / 特殊ペイント カラー指定（最大3色）</p>
+                                {[0, 1, 2].map((idx) => (
+                                  <div key={idx} className="relative">
+                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[11px] font-black text-slate-500">{idx + 1}色目</span>
+                                    <input 
+                                      type="text"
+                                      placeholder={idx === 0 ? "カラー名や番号を入力" : "(複数色の場合に入力)"}
+                                      className="w-full bg-white border-2 border-blue-100 rounded-xl py-4 pl-14 pr-4 text-sm font-black outline-none shadow-sm transition-all focus:border-blue-600 focus:ring-1 focus:ring-blue-600"
+                                      value={paint.customColors[idx]}
+                                      onChange={e => handleCustomColorChange(idx, e.target.value)}
+                                    />
+                                  </div>
+                                ))}
+                                {/* カラーガイド PDF リンク */}
+                                <div className="pt-2">
+                                  <a 
+                                    href="https://www.oxgroup.co.jp/wp/wp-content/uploads/2024/12/ColorGuide2025.08_Vol.1_PDF%E7%89%88.pdf" 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 rounded-xl border border-blue-100 hover:bg-blue-100 transition-colors text-xs font-black"
+                                  >
+                                    <ExternalLink size={14} />
+                                    カラーガイド (PDF) を表示
+                                  </a>
+                                </div>
+                              </div>
+                            </>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -1350,7 +1398,7 @@ const App = () => {
                         </div>
                       )}
                       <div className={`space-y-2 p-5 rounded-3xl border-2 shadow-inner ${(showMissingRequired.includes('H4 バック高（タイプ）') || showMissingRequired.includes('H4 バック高（値）')) ? 'border-red-500 bg-red-50' : 'bg-slate-50 border border-slate-200/50'}`}>
-                        <label className="block text-[10px] font-black text-slate-400 uppercase mb-1 tracking-widest italic">H4 バック高</label>
+                        <label className="block text-xs font-black text-slate-600 uppercase mb-1 tracking-widest italic">H4 バック高</label>
                         <select className="w-full bg-white border rounded-xl p-2 text-xs font-bold outline-none mb-2" value={dimensions.h4Type} onChange={e => setDimensions(d => ({...d, h4Type: e.target.value}))}>
                           {(dimensionOptsMap.h4Type || []).length > 1 && <option value="">選択</option>}
                           {(dimensionOptsMap.h4Type || []).map(v => <option key={v} value={v}>{v}</option>)}
@@ -1363,7 +1411,7 @@ const App = () => {
                       <div className={`space-y-4 p-5 rounded-3xl border-2 shadow-inner ${(showMissingRequired.includes(DIMENSION_LABELS.l8) || showMissingRequired.includes(DIMENSION_LABELS.lever)) ? 'border-red-500 bg-red-50' : 'bg-slate-50 border border-slate-200/50'}`}>
                         {!['LX_LR', 'FX_FR', 'COTON'].includes(selectedSeries) && (
                           <div className="space-y-1">
-                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest italic">車軸前後位置 (L8)</label>
+                            <label className="block text-xs font-black text-slate-600 uppercase tracking-widest italic">車軸前後位置 (L8)</label>
                             <select className="w-full bg-white border rounded-xl p-2 text-xs font-bold outline-none" value={dimensions.l8} onChange={e => setDimensions(d => ({...d, l8: e.target.value}))}>
                               {l8Options.length > 1 && <option value="">選択</option>}
                               {l8Options.map(v => <option key={v} value={v}>{v}mm</option>)}
@@ -1372,7 +1420,7 @@ const App = () => {
                         )}
                         {isHorizontalBrake ? (
                           <div className="space-y-1">
-                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest italic">ブレーキレバー長</label>
+                            <label className="block text-xs font-black text-slate-600 uppercase tracking-widest italic">ブレーキレバー長</label>
                             <div className="w-full bg-amber-50 border border-amber-200 rounded-xl p-2 text-xs text-amber-600 font-bold text-center flex items-center justify-center gap-1">
                               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
                               ホリゾンタル選択時は不要
@@ -1380,7 +1428,7 @@ const App = () => {
                           </div>
                         ) : (currentCatalog?.dimensionRules?.lever || []).length > 0 ? (
                           <div className="space-y-1">
-                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest italic">ブレーキレバー長</label>
+                            <label className="block text-xs font-black text-slate-600 uppercase tracking-widest italic">ブレーキレバー長</label>
                             <select className="w-full bg-white border rounded-xl p-2 text-xs font-bold outline-none" value={dimensions.lever} onChange={e => setDimensions(d => ({...d, lever: e.target.value}))}>
                               {(currentCatalog.dimensionRules?.lever || []).length > 1 && <option value="">選択</option>}
                               {(currentCatalog.dimensionRules?.lever || []).map(v => <option key={v} value={v}>{v}mm</option>)}
@@ -1411,7 +1459,7 @@ const App = () => {
                           const dimInvalid = showMissingRequired.includes(dimLabel);
                           return (
                             <div key={k} className={`w-20 text-center ${dimInvalid ? 'rounded-xl p-2 border-2 border-red-500 bg-red-50' : ''}`}>
-                              <span className="text-[8px] font-black text-slate-400 block mb-1 uppercase tracking-widest">{dimLabel}</span>
+                              <span className="text-[11px] leading-tight font-black text-slate-700 block mb-1 tracking-wide">{dimLabel}</span>
                               <select className="w-full bg-white border rounded-xl p-2 text-xs font-black outline-none shadow-sm text-center" value={dimensions[k]} onChange={e => setDimensions(d => ({ ...d, [k]: e.target.value }))} disabled={(k === 'cm' && selections.axleType?.id === 'axle_b') || (k === 'sb' && isSbLocked) || (k === 'l1' && selectedSeries === 'MX_MR' && frameParts.size?.label === 'Sサイズ')}>
                                 {opts.length > 1 && <option value="">選択</option>}
                                 {opts.map(v => <option key={v} value={v}>{v}{(k === 'sb' || k === 'cm') ? '°' : ''}</option>)}
@@ -1428,8 +1476,8 @@ const App = () => {
                       <div className={`border-2 rounded-2xl p-5 mb-6 grid grid-cols-1 md:grid-cols-3 gap-3 ${showMissingRequired.includes('アームレスト（高低・高さ）') || showMissingRequired.includes('アームレスト長') ? 'border-red-500 bg-red-50' : 'bg-slate-50 border border-slate-200'} ${armrestConfig.armrestLengths?.length ? 'md:grid-cols-4' : ''}`}>
                         <select className="bg-white border rounded-xl p-3 text-sm font-bold outline-none" value={armrestSel.kind} onChange={e => setArmrestSel({ kind: e.target.value, lh: '', ah: '', al: '' })}>
                           {!(selectedSeries === 'NEO' || selectedSeries === 'GWE' || selectedSeries === 'COTON' || (selectedSeries === 'MX_MR' && selections.baseModel?.id === 'mx_base') || (catalogVariant === 'kids' && ((selectedSeries === 'MINI_NEO_KIDS' && selections.baseModel?.id === 'kids_school') || (selectedSeries === 'MINI_NEO_JUNIOR' && selections.baseModel?.id === 'jr_school') || selectedSeries === 'MINI_NEO_A_KIDS' || selectedSeries === 'MINI_NEO_A_JUNIOR'))) && <option value="">アームレストなし</option>}
-                          {armrestConfig.arm && <option value="arm">アームレスト {(selectedSeries === 'NEO' || selectedSeries === 'GWE' || selectedSeries === 'COTON' || (selectedSeries === 'MX_MR' && selections.baseModel?.id === 'mx_base') || (catalogVariant === 'kids' && ((selectedSeries === 'MINI_NEO_KIDS' && selections.baseModel?.id === 'kids_school') || (selectedSeries === 'MINI_NEO_JUNIOR' && selections.baseModel?.id === 'jr_school') || selectedSeries === 'MINI_NEO_A_KIDS' || selectedSeries === 'MINI_NEO_A_JUNIOR'))) ? '(標準 込)' : '(+¥22,000)'}</option>}
-                          {armrestConfig.flip && <option value="flip">はね上げ式 {(selectedSeries === 'NEO' || (selectedSeries === 'MX_MR' && selections.baseModel?.id === 'mx_base') || (catalogVariant === 'kids' && ['MINI_NEO_KIDS', 'MINI_NEO_JUNIOR', 'MINI_NEO_A_KIDS', 'MINI_NEO_A_JUNIOR'].includes(selectedSeries))) ? '(+¥6,000)' : '(+¥28,000)'}</option>}
+                          {armrestConfig.arm && <option value="arm">アームレスト {(selectedSeries === 'NEO' || selectedSeries === 'GWE' || selectedSeries === 'COTON' || (selectedSeries === 'MX_MR' && selections.baseModel?.id === 'mx_base') || (catalogVariant === 'kids' && ((selectedSeries === 'MINI_NEO_KIDS' && selections.baseModel?.id === 'kids_school') || (selectedSeries === 'MINI_NEO_JUNIOR' && selections.baseModel?.id === 'jr_school') || selectedSeries === 'MINI_NEO_A_KIDS' || selectedSeries === 'MINI_NEO_A_JUNIOR'))) ? '(標準 込)' : (selectedSeries === 'MINI_NEO_TODDLER' ? '(+¥21,000)' : '(+¥22,000)')}</option>}
+                          {armrestConfig.flip && <option value="flip">はね上げ式 {(selectedSeries === 'NEO' || (selectedSeries === 'MX_MR' && selections.baseModel?.id === 'mx_base') || (catalogVariant === 'kids' && ['MINI_NEO_KIDS', 'MINI_NEO_JUNIOR', 'MINI_NEO_A_KIDS', 'MINI_NEO_A_JUNIOR'].includes(selectedSeries))) ? '(+¥6,000)' : (selectedSeries === 'MINI_NEO_TODDLER' ? '(+¥27,000)' : '(+¥28,000)')}</option>}
                         </select>
                         <select className="bg-white border rounded-xl p-3 text-sm font-bold outline-none disabled:opacity-20" value={armrestSel.lh} disabled={!armrestSel.kind} onChange={e => setArmrestSel(s => ({ ...s, lh: e.target.value, ah: '' }))}><option value="">-- 高低 --</option>{((armrestSel.kind === 'arm' ? armrestConfig.arm : armrestConfig.flip) || {})?.low && <option value="ロー">ロー</option>}{((armrestSel.kind === 'arm' ? armrestConfig.arm : armrestConfig.flip) || {})?.mid && <option value="ミディアム">ミディアム</option>}{((armrestSel.kind === 'arm' ? armrestConfig.arm : armrestConfig.flip) || {})?.high && <option value="ハイ">ハイ</option>}</select>
                         <select className="bg-white border rounded-xl p-3 text-sm font-bold outline-none disabled:opacity-20" value={armrestSel.ah} disabled={!armrestSel.kind || !armrestSel.lh} onChange={e => setArmrestSel(s => ({ ...s, ah: e.target.value }))}><option value="">-- 高さ --</option>{((armrestSel.lh === 'ロー' ? (armrestSel.kind === 'arm' ? armrestConfig.arm?.low : armrestConfig.flip?.low) : armrestSel.lh === 'ミディアム' ? (armrestSel.kind === 'arm' ? armrestConfig.arm?.mid : armrestConfig.flip?.mid) : (armrestSel.kind === 'arm' ? armrestConfig.arm?.high : armrestConfig.flip?.high))?.ah || []).map(v => <option key={v} value={v}>{v}mm</option>)}</select>
@@ -1447,7 +1495,7 @@ const App = () => {
                       }).map(opt => (
                         <button key={opt.id} type="button" onClick={() => toggleItem(opt, selectedOptions, setSelectedOptions)} className={`flex justify-between items-center p-5 border rounded-2xl text-left transition-all ${selectedOptions.find(o=>o.id===opt.id) ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-500' : 'border-slate-100 bg-white hover:border-blue-300'}`}>
                           <div><p className="text-[9px] font-bold text-blue-400 mb-1 tracking-widest uppercase leading-none">{opt.no}</p><span className="text-xs font-black text-slate-700 uppercase leading-none">{opt.name}</span></div>
-                          <span className="text-xs font-mono font-black text-blue-600">{itemPrice(opt) >= 0 ? '+' : ''}{yen(itemPrice(opt))}</span>
+                          <span className="text-xs font-mono font-black text-blue-600">{(() => { const p = itemPrice(opt); return p == null ? '未設定' : (p >= 0 ? '+' : '') + yen(p); })()}</span>
                         </button>
                       ))}
                     </div>
@@ -1458,7 +1506,7 @@ const App = () => {
                       {(currentCatalog?.accessories && currentCatalog.accessories.length > 0 ? currentCatalog.accessories : COMMON_ACCESSORIES).map(acc => (
                         <button key={acc.id} onClick={() => toggleItem(acc, selectedAccessories, setSelectedAccessories)} className={`flex justify-between items-center p-5 border rounded-2xl text-left transition-all ${selectedAccessories.find(a=>a.id===acc.id) ? 'border-blue-600 bg-blue-600 shadow-xl scale-[1.02]' : 'border-white/10 bg-white/5 hover:bg-white/10'}`}>
                           <div><p className="text-[9px] font-bold text-blue-400 mb-1 tracking-widest uppercase leading-none">{acc.no}</p><span className="text-xs font-bold uppercase">{acc.name}</span></div>
-                          <span className="text-[10px] font-mono font-black opacity-60">¥{(acc.price != null ? acc.price : itemPrice(acc)).toLocaleString()}</span>
+                          <span className="text-[10px] font-mono font-black opacity-60">{(() => { const p = acc.price != null ? acc.price : itemPrice(acc); return p == null ? '未設定' : '¥' + p.toLocaleString(); })()}</span>
                         </button>
                       ))}
                     </div>
@@ -1473,32 +1521,32 @@ const App = () => {
             </div>
             <div className="lg:col-span-4 sticky top-28 hidden lg:block z-30 font-bold">
               <div className="bg-white rounded-3xl shadow-xl border overflow-hidden">
-                <div className="p-6 bg-slate-900 text-white flex justify-between items-center"><span className="font-black text-xs uppercase flex items-center gap-2"><ShoppingCart size={18} className="text-blue-400"/> Snapshot</span><span className="text-[9px] bg-blue-600 px-2 py-1 rounded font-black uppercase tracking-widest">{selectedSeries || '---'}</span></div>
+                <div className="p-6 bg-slate-900 text-white flex justify-between items-center"><span className="font-black text-xs uppercase flex items-center gap-2"><ShoppingCart size={18} className="text-blue-400"/> Snapshot</span><span className="text-[11px] bg-blue-600 px-2 py-1 rounded font-black uppercase tracking-widest">{selectedSeries || '---'}</span></div>
                 <div className="p-6 space-y-4 max-h-[600px] overflow-y-auto text-right border-b">
                   {/* スナップショット内に顧客情報を簡易表示 */}
                   {customerInfo.userName && (
                     <div className="flex justify-between items-start border-b pb-2 text-left bg-blue-50/50 p-2 rounded-lg">
-                      <span className="text-[9px] text-blue-400 font-black uppercase w-16 pt-1 tracking-widest">User</span>
+                      <span className="text-[11px] text-blue-500 font-black uppercase w-16 pt-1 tracking-widest">User</span>
                       <p className="text-[11px] font-black text-blue-800 uppercase flex-1 text-right">{customerInfo.userName}</p>
                     </div>
                   )}
-                  {derivedFrameNo && <div className="flex justify-between items-start border-b pb-2 text-left"><span className="text-[9px] text-slate-400 font-black uppercase w-16 pt-1 tracking-widest">Frame No</span><p className="text-[11px] font-black text-blue-600 font-mono uppercase tracking-widest flex-1 text-right">{derivedFrameNo}</p></div>}
-                  {derivedBackAngle && <div className="flex justify-between items-start border-b pb-2 text-left"><span className="text-[9px] text-slate-400 font-black uppercase w-16 pt-1 tracking-widest">背角度</span><p className="text-[11px] font-black text-slate-800 font-mono tracking-widest flex-1 text-right">{derivedBackAngle}</p></div>}
+                  {derivedFrameNo && <div className="flex justify-between items-start border-b pb-2 text-left"><span className="text-[11px] text-slate-500 font-black uppercase w-16 pt-1 tracking-widest">Frame No</span><p className="text-[11px] font-black text-blue-600 font-mono uppercase tracking-widest flex-1 text-right">{derivedFrameNo}</p></div>}
+                  {derivedBackAngle && <div className="flex justify-between items-start border-b pb-2 text-left"><span className="text-[11px] text-slate-500 font-black uppercase w-16 pt-1 tracking-widest">背角度</span><p className="text-[11px] font-black text-slate-800 font-mono tracking-widest flex-1 text-right">{derivedBackAngle}</p></div>}
                   {Object.entries(selections).map(([k,v]) => v && (
                     <div key={k} className="flex justify-between items-start border-b pb-2 text-left">
-                      <span className="text-[9px] text-slate-400 font-black uppercase w-16 pt-1 tracking-widest">{k}</span>
+                      <span className="text-[11px] text-slate-500 font-black uppercase w-16 pt-1 tracking-widest">{k}</span>
                       <div className="text-right flex-1">
                         <p className="text-[11px] font-black text-slate-800 uppercase leading-tight tracking-tighter">
                           {(k === 'axleType' && ['LX_LR', 'FX_FR'].includes(selectedSeries)) ? getAxleDisplayName(v) : (typeof v === 'string' ? v : v.name)}
                         </p>
-                        {typeof v !== 'string' && <p className="text-[9px] text-blue-600 font-mono font-black uppercase mt-1 tracking-widest">
+                        {typeof v !== 'string' && <p className="text-[11px] text-blue-700 font-mono font-black uppercase mt-1 tracking-widest">
                           {k === 'wheel' ? getWheelNo(v, selections.wheelSize) : v.no}
                         </p>}
                       </div>
                     </div>
                   ))}
                   <div className="flex justify-between items-start border-b pb-2 text-left">
-                    <span className="text-[9px] text-slate-400 font-black uppercase w-16 pt-1 tracking-widest">塗装</span>
+                    <span className="text-[11px] text-slate-500 font-black uppercase w-16 pt-1 tracking-widest">塗装</span>
                     <div className="text-right flex-1">
                       <p className="text-[11px] font-black text-slate-800 uppercase leading-tight tracking-tighter">{PAINT_PLANS.find(p => p.id === paint.type)?.name}</p>
                       <p className="text-[11px] font-black text-blue-600 uppercase leading-tight tracking-tighter mt-1">
@@ -1507,7 +1555,7 @@ const App = () => {
                     </div>
                   </div>
                   <div className="pt-4 flex justify-between items-end border-t-2 border-dashed">
-                    <span className="text-slate-400 text-[10px] font-black uppercase tracking-widest">Total</span>
+                    <span className="text-slate-500 text-[11px] font-black uppercase tracking-widest">Total</span>
                     <span className="text-3xl font-black font-mono text-blue-600 tracking-tighter italic">¥{totalAmount.toLocaleString()}</span>
                   </div>
                 </div>
@@ -1540,55 +1588,55 @@ const App = () => {
             <div className="p-4 sm:p-8 md:p-12 grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12">
               <div className="lg:col-span-8 space-y-16">
                 <div>
-                  <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.3em] mb-8 border-l-4 border-blue-600 pl-4 underline underline-offset-8 decoration-slate-100">01. 基本パーツ構成</h3>
+                  <h3 className="text-[11px] font-black text-slate-600 uppercase tracking-[0.3em] mb-8 border-l-4 border-blue-600 pl-4 underline underline-offset-8 decoration-slate-100">01. 基本パーツ構成</h3>
                   <table className="w-full text-left">
-                    <thead><tr className="text-[9px] md:text-[10px] text-slate-400 uppercase font-black border-b-2 tracking-widest"><th className="pb-3 md:pb-5 w-1/5">項目</th><th className="pb-3 md:pb-5">パーツ</th><th className="pb-3 md:pb-5 text-center hidden sm:table-cell">記入No.</th><th className="pb-3 md:pb-5 text-right">加算額</th></tr></thead>
+                    <thead><tr className="text-[11px] md:text-xs text-slate-600 uppercase font-black border-b-2 tracking-widest"><th className="pb-3 md:pb-5 w-1/5">項目</th><th className="pb-3 md:pb-5">パーツ</th><th className="pb-3 md:pb-5 text-center hidden sm:table-cell">記入No.</th><th className="pb-3 md:pb-5 text-right">加算額</th></tr></thead>
                     <tbody className="divide-y">
                       {totalLineItems.map((row, i) => (
                         <tr key={i} className="group hover:bg-slate-50 transition-colors">
-                          <td className="py-3 md:py-5 text-[9px] md:text-[10px] text-slate-400 font-black tracking-widest">{row.label}</td>
+                          <td className="py-3 md:py-5 text-[11px] md:text-xs text-slate-600 font-black tracking-widest">{row.label}</td>
                           <td className="py-3 md:py-5 text-xs md:text-sm font-bold text-slate-800 leading-snug">{row.name}</td>
                           <td className="py-3 md:py-5 text-center hidden sm:table-cell"><span className="bg-slate-900 text-white px-3 py-1.5 md:px-6 md:py-3 rounded-xl font-mono text-sm md:text-base font-black tracking-widest">{row.no}</span></td>
-                          <td className="py-3 md:py-5 text-right font-mono font-black text-slate-500 text-xs">{row.price === 0 ? "込" : (row.price > 0 ? `+¥${row.price.toLocaleString()}` : `¥${row.price.toLocaleString()}`)}</td>
+                          <td className="py-3 md:py-5 text-right font-mono font-black text-slate-500 text-xs">{row.price == null ? "未設定" : (row.price === 0 ? "込" : (row.price > 0 ? `+¥${row.price.toLocaleString()}` : `¥${row.price.toLocaleString()}`))}</td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
                 <div className="pt-8 border-t-2 border-dashed">
-                  <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.3em] mb-10 border-l-4 border-blue-600 pl-4">02. オプション & アクセサリー</h3>
+                  <h3 className="text-[11px] font-black text-slate-600 uppercase tracking-[0.3em] mb-10 border-l-4 border-blue-600 pl-4">02. オプション & アクセサリー</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {[...selectedOptions, ...selectedAccessories].filter(o => o.__group !== 'ARMREST').map((opt, i) => (
                       <div key={i} className="flex justify-between items-center p-3 md:p-5 bg-[#f8fafc] rounded-xl border transition-all hover:bg-white shadow-sm">
                         <div className="flex items-center gap-5"><span className="bg-blue-600 text-white text-[10px] px-4 py-2 rounded-full font-black font-mono tracking-widest">{opt.no}</span><span className="text-[11px] font-black text-slate-700 tracking-tight">{opt.name}</span></div>
-                        <span className="text-xs font-mono font-black text-blue-600">{itemPrice(opt) >= 0 ? '+' : ''}¥{itemPrice(opt).toLocaleString()}</span>
+                        <span className="text-xs font-mono font-black text-blue-600">{(() => { const p = itemPrice(opt); return p == null ? '未設定' : (p >= 0 ? '+' : '') + '¥' + p.toLocaleString(); })()}</span>
                       </div>
                     ))}
                   </div>
                 </div>
                 <div className="pt-8 border-t-2 border-dashed">
-                  <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.3em] mb-6 border-l-4 border-blue-600 pl-4">04. 備考・特記事項</h3>
+                  <h3 className="text-[11px] font-black text-slate-600 uppercase tracking-[0.3em] mb-6 border-l-4 border-blue-600 pl-4">04. 備考・特記事項</h3>
                   <div className="bg-slate-50 p-5 md:p-8 rounded-2xl border text-sm font-bold text-slate-700 min-h-[100px] whitespace-pre-wrap shadow-inner border-dashed">{remarks || "特記事項なし"}</div>
                 </div>
               </div>
               <div className="lg:col-span-4 space-y-12">
                 <div className="bg-slate-50 p-6 md:p-10 rounded-3xl border shadow-inner text-left">
-                  <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.4em] mb-10 italic underline decoration-blue-500 underline-offset-8">03. 指定寸法一覧</h3>
+                  <h3 className="text-[12px] font-black text-slate-600 uppercase tracking-[0.4em] mb-10 italic underline decoration-blue-500 underline-offset-8">03. 指定寸法一覧</h3>
                   <div className="space-y-6">
-                    <div className="flex justify-between items-center border-b pb-3"><span className="text-[10px] text-slate-400 font-black uppercase tracking-widest">ホイール</span><span className="font-black text-lg text-blue-600">{selections.wheelSize}</span></div>
+                    <div className="flex justify-between items-center border-b pb-3"><span className="text-[11px] text-slate-600 font-black uppercase tracking-widest">ホイール</span><span className="font-black text-lg text-blue-600">{selections.wheelSize}</span></div>
                     {Object.entries(dimensions).map(([k,v]) => {
                       const displayVal = (k === 'casterWheel' && currentCatalog?.dimensionRules?.casterWheel?.length && v) ? (currentCatalog.dimensionRules.casterWheel.find(cw => (typeof cw === 'object' ? cw.value : cw) === v)?.label ?? v) : v;
                       const unit = v ? (k === 'sb' ? '°' : (k === 'casterWheel' ? '' : (isNaN(v) ? '' : 'mm'))) : '';
                       return (
-                        <div key={k} className="flex justify-between items-center border-b pb-3"><span className="text-[10px] text-slate-400 font-black uppercase tracking-widest">{DIMENSION_LABELS[k] || k}</span><span className="font-black text-lg text-slate-900">{(displayVal != null && displayVal !== '') ? displayVal : '---'} {unit && <span className="text-[10px] ml-0.5 text-slate-400 italic font-normal">{unit}</span>}</span></div>
+                        <div key={k} className="flex justify-between items-center border-b pb-3"><span className="text-[11px] text-slate-600 font-black uppercase tracking-widest">{DIMENSION_LABELS[k] || k}</span><span className="font-black text-lg text-slate-900">{(displayVal != null && displayVal !== '') ? displayVal : '---'} {unit && <span className="text-[11px] ml-0.5 text-slate-500 italic font-normal">{unit}</span>}</span></div>
                       );
                     })}
-                    {derivedBackAngle && <div className="flex justify-between items-center border-b pb-3"><span className="text-[10px] text-slate-400 font-black uppercase tracking-widest">背角度</span><span className="font-black text-lg text-slate-900">{derivedBackAngle ?? '—'}</span></div>}
+                    {derivedBackAngle && <div className="flex justify-between items-center border-b pb-3"><span className="text-[11px] text-slate-600 font-black uppercase tracking-widest">背角度</span><span className="font-black text-lg text-slate-900">{derivedBackAngle ?? '—'}</span></div>}
                   </div>
                 </div>
                 <div className="bg-gradient-to-br from-blue-600 to-blue-700 p-8 md:p-12 rounded-3xl text-white shadow-xl text-center border-4 border-white/20">
                   <p className="font-black font-mono tracking-tighter text-3xl md:text-4xl"><span className="text-[0.6em] mr-1">¥</span>{totalAmount.toLocaleString()}</p>
-                  <p className="text-[9px] opacity-70 font-bold uppercase mt-4 italic">OX ENGINEERING DATA</p>
+                  <p className="text-[11px] opacity-75 font-bold uppercase mt-4 italic">OX ENGINEERING DATA</p>
                 </div>
                 {/* PDF作成ボタンの実装 */}
                 <button 
@@ -1597,7 +1645,7 @@ const App = () => {
                 >
                   <FileText size={30}/> PDF作成
                 </button>
-                <p className="text-[10px] text-center text-slate-400 font-bold leading-relaxed px-4">
+                <p className="text-[11px] text-center text-slate-600 font-bold leading-relaxed px-4">
                   ※作成されるPDFはA4縦サイズで印刷に適したフォーマットになります。スマホでは「共有」からメールアプリで送付できます。
                 </p>
                 {/* CSV出力ボタン */}
@@ -1608,7 +1656,7 @@ const App = () => {
                   <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
                   CSV出力（転記用）
                 </button>
-                <p className="text-[10px] text-center text-slate-400 font-bold leading-relaxed px-4">
+                <p className="text-[11px] text-center text-slate-600 font-bold leading-relaxed px-4">
                   ※ExcelやGoogleスプレッドシートで開けるCSV形式で出力されます（UTF-8 BOM付き）。
                 </p>
                 {/* PRINTボタン */}
@@ -1619,7 +1667,7 @@ const App = () => {
                   <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
                   PRINT / PDF保存
                 </button>
-                <p className="text-[10px] text-center text-slate-400 font-bold leading-relaxed px-4 no-print">
+                <p className="text-[11px] text-center text-slate-600 font-bold leading-relaxed px-4 no-print">
                   ※ブラウザの印刷ダイアログから「PDFに保存」を選択すると日本語のまま保存できます。
                 </p>
                 {/* メール送付ボタン */}
@@ -1630,7 +1678,7 @@ const App = () => {
                   <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
                   メール送付
                 </button>
-                <p className="text-[10px] text-center text-slate-400 font-bold leading-relaxed px-4 no-print">
+                <p className="text-[11px] text-center text-slate-600 font-bold leading-relaxed px-4 no-print">
                   ※メールアプリが開き、MANIFEST内容が本文に自動入力されます。
                 </p>
               </div>

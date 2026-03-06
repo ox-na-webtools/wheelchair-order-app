@@ -13,20 +13,13 @@
     // なければ従来どおり単一の PRICE_MASTER を見る（互換用）
     const master = masterByYear || global.PRICE_MASTER || {};
 
-    if (master[key] != null) {
+    if (Object.prototype.hasOwnProperty.call(master, key)) {
       return master[key];
     }
 
-    // デバッグ時のみ未定義キーを警告
-    if (global.PRICE_DEBUG) {
-      console.warn('[PRICE] 未定義の priceKey が使用されました:', {
-        key,
-        year,
-        hasMasterByYear: !!masterByYear,
-      });
-    }
-
-    return 0;
+    // 未登録の priceKey → 警告して null（未設定と分かるようにする）
+    console.warn('[PRICE_MASTER] 未登録の priceKey:', key, '(年:', year + ')');
+    return null;
   }
 
   function itemPrice(item) {
@@ -47,6 +40,7 @@
       selectedAccessories,
       paint,
       selectedSeries,
+      catalogVariant,
       gweUnitDetail,
       frameParts,
       PAINT_PLANS,
@@ -67,28 +61,34 @@
       casterWheelType,
     ];
     list.forEach((item) => {
-      if (item) sum += itemPrice(item);
+      if (item) sum += (itemPrice(item) ?? 0);
     });
 
-    // 塗装価格計算
+    // 塗装価格計算（キッズ・コトン以外の1色は無料）
     const activePlan =
       (PAINT_PLANS || []).find((p) => p.id === paint.type) || null;
-    if (activePlan) sum += getPrice(activePlan.priceKey);
+    const paintPlanPriceKey =
+      catalogVariant === 'kids' &&
+      selectedSeries !== 'COTON' &&
+      paint.type === 'special_1'
+        ? 'paint.special_1_kids'
+        : activePlan?.priceKey;
+    if (activePlan) sum += (getPrice(paintPlanPriceKey) ?? 0);
 
     if (selectedSeries === 'COTON' && frameParts.seat && frameParts.seat.price) {
       sum += frameParts.seat.price;
     }
 
-    (selectedOptions || []).forEach((o) => (sum += itemPrice(o)));
-    (selectedAccessories || []).forEach((a) => (sum += itemPrice(a)));
+    (selectedOptions || []).forEach((o) => (sum += (itemPrice(o) ?? 0)));
+    (selectedAccessories || []).forEach((a) => (sum += (itemPrice(a) ?? 0)));
 
     if (selectedSeries === 'GWE' && gweUnitDetail && gweUnitDetail.unitId) {
       const master = GWE_UNIT_DETAIL_MASTER || {};
       const u = master[gweUnitDetail.unitId];
       if (u) {
-        sum += getPrice(u.basePriceKey);
+        sum += (getPrice(u.basePriceKey) ?? 0);
         Object.values(gweUnitDetail.parts || {}).forEach((p) => {
-          if (p) sum += itemPrice(p);
+          if (p) sum += (itemPrice(p) ?? 0);
         });
       }
     }
@@ -105,6 +105,7 @@
       handrimResolved,
       frameParts,
       selectedSeries,
+      catalogVariant,
       casterWheelType,
       casterWheelSize,
       selectedOptions,
@@ -241,12 +242,18 @@
 
     const activePlan =
       (PAINT_PLANS || []).find((p) => p.id === paint.type) || null;
+    const paintPlanPriceKey =
+      catalogVariant === 'kids' &&
+      selectedSeries !== 'COTON' &&
+      paint.type === 'special_1'
+        ? 'paint.special_1_kids'
+        : activePlan?.priceKey;
     if (activePlan) {
       items.push({
         label: '塗装プラン',
         name: activePlan.name,
         no: '塗装',
-        price: getPrice(activePlan.priceKey),
+        price: getPrice(paintPlanPriceKey),
       });
     }
 

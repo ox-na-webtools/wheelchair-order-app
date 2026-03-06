@@ -176,7 +176,7 @@ window.buildPdf = async function buildPdf(params) {
       addText(item.name, margin + 40, y, 9);
       addText(item.no, margin + 120, y, 9);
       addText(
-        item.price === 0 ? "込" : yen(item.price),
+        item.price == null ? "未設定" : (item.price === 0 ? "込" : yen(item.price)),
         pageWidth - margin - 2,
         y,
         9,
@@ -269,7 +269,7 @@ window.buildPdf = async function buildPdf(params) {
           y = margin + 20;
         }
         addText(`[${opt.no}] ${opt.name}`, margin + 2, y, 9);
-        addText(yen(itemPrice(opt)), pageWidth - margin - 2, y, 9, "normal", "right");
+        addText(itemPrice(opt) == null ? "未設定" : yen(itemPrice(opt)), pageWidth - margin - 2, y, 9, "normal", "right");
         y += 6;
       });
     }
