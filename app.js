@@ -1,7 +1,9 @@
 import { calcPrice } from './src/lib/pricing.js';
-import { getArmrestConfig, filterOptionsForSpecialSection } from './src/lib/option_rules.js';
-import { toggleItem, upsertArmrestOption, computeArmrestOption, createSetPush, createSetWheelie, createSetFender, createSetCushionTbl } from './src/lib/option_selectors.js';
+import { getArmrestConfig, filterOptionsForSpecialSection, getMainWheelDisplayForFrameLinkedCatalog, getMainWheelSizeByFrameType } from './src/lib/option_rules.js';
+import { toggleItem, upsertArmrestOption, computeArmrestOption, createSetPush, createSetWheelie, createSetFender, createSetCushionTbl, createSetGripOrPush } from './src/lib/option_selectors.js';
 import { SpecialOptionsSection } from './src/lib/sections/special_options.js';
+import { computeMissingRequiredItems, scrollToFirstMissingItem } from './src/lib/form_validation.js';
+import { useSyncSchoolPackageOptions } from './src/lib/useSyncSchoolPackageOptions.js';
 const { useState, useMemo, useEffect, useCallback } = React;
 function Icon({ size = 24, className = '', children }) {
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>{children}</svg>;
@@ -47,7 +49,7 @@ const itemPrice = (item) => {
 const itemPriceWithPackage = (item, packageId) => {
   if (!item) return 0;
   const isEnjoy = packageId === 'kids_enjoy' || packageId === 'jr_enjoy';
-  const isSchool = packageId === 'kids_school' || packageId === 'jr_school';
+  const isSchool = packageId === 'kids_school' || packageId === 'jr_school' || packageId === 'kids_school_less' || packageId === 'jr_school_less';
   if (item.priceKeyEnjoy != null && item.priceKeySchool != null) {
     const key = isEnjoy ? item.priceKeyEnjoy : (isSchool ? item.priceKeySchool : item.priceKeyEnjoy);
     const master = window.PRICE_MASTER;
@@ -109,13 +111,14 @@ const TopPage = ({ onSelect }) => (
   </div>
 );
 const SelectionGroup = ({ title, items, selectionKey, dynamicNameFn, isInvalid, selections, setSelections }) => (
-  <div className={`rounded-2xl shadow-sm overflow-hidden mb-6 border-2 ${isInvalid ? 'border-red-500 bg-red-50' : 'border border-slate-200 bg-white'}`}>
+  <div className={`rounded-2xl shadow-sm overflow-hidden mb-6 border-2 ${isInvalid ? 'border-red-500 bg-red-50' : 'border border-slate-200 bg-white'}`} data-required-label={title}>
     <div className={`px-5 py-3 border-b flex items-center gap-2 font-bold text-slate-800 tracking-widest uppercase text-xs ${isInvalid ? 'border-red-200 bg-red-100' : 'border-slate-200 bg-slate-50'}`}>{title}</div>
     <div className="p-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
       {(items || []).map(item => (
         <button key={item.id} type="button" onClick={() => setSelections(prev => ({ ...prev, [selectionKey]: item }))} className={`flex flex-col p-3 border rounded-xl text-left transition-all text-sm ${selections[selectionKey]?.id === item.id ? 'border-blue-600 bg-blue-50 ring-1 ring-blue-600' : 'border-slate-100 bg-white hover:border-blue-300'}`}>
-          <span className="text-[11px] font-black text-blue-600 uppercase mb-1">{item.no}</span>
+          {item.no != null && item.no !== '' && <span className="text-[11px] font-black text-blue-600 uppercase mb-1">{item.no}</span>}
           <span className="text-sm font-bold text-slate-700 leading-tight">{dynamicNameFn ? dynamicNameFn(item) : item.name}</span>
+          {item.note && <span className="text-[10px] text-amber-700 mt-1 leading-tight">{item.note}</span>}
           <span className="text-xs font-mono font-black text-slate-500 mt-2">{(() => { const p = itemPrice(item); return p == null ? "未設定" : (p === 0 ? "標準" : (p > 0 ? `+¥${p.toLocaleString()}` : `¥${p.toLocaleString()}`)); })()}</span>
         </button>
       ))}
@@ -161,6 +164,7 @@ const App = () => {
   const [dimensions, setDimensions] = useState({ w1: '', l1: '', offset: '', h4Type: '', h4Val: '', sb: '', l8: '', cm: '', lever: '', w2: '', casterWheel: '', h2: '', h3: '' });
   const [remarks, setRemarks] = useState('');
   const [gweUnitDetail, setGweUnitDetail] = useState({ unitId: '', parts: {} });
+  const [jwg1Selections, setJwg1Selections] = useState({ clutchLever: null, controllerPos: null, switch: null });
   const [armrestSel, setArmrestSel] = useState({ kind: '', lh: '', ah: '', al: '' });
   const currentCatalog = useMemo(() => selectedSeries && catalog ? catalog[selectedSeries] : null, [selectedSeries, catalog]);
   const getWheelNo = useCallback((wheel, size) => {
@@ -233,29 +237,27 @@ const App = () => {
     const nextOffset = String(h).includes('フラット') ? '-20' : '0';
     setDimensions(d => (d.offset === nextOffset ? d : { ...d, offset: nextOffset }));
   }, [selectedSeries, frameParts.height]);
-  // ミニネオキッズ・ジュニア スクール時: ウイリーバー固定式・樹脂製フェンダー小は標準装備のため未選択なら追加
   useEffect(() => {
-    if (!currentCatalog?.options || !(selectedSeries === 'MINI_NEO_KIDS' || selectedSeries === 'MINI_NEO_JUNIOR')) return;
-    const pkgId = selections.baseModel?.id;
-    if (pkgId !== 'kids_school' && pkgId !== 'jr_school') return;
-    const opts = currentCatalog.options;
-    const wheelieFixed = opts.find(o => o.id === 'opt_wheelie_fixed');
-    const fenderS = opts.find(o => o.id === 'opt_fender_s');
-    setSelectedOptions(prev => {
-      const hasWheelie = (prev || []).some(o => o && (o.id === 'opt_wheelie_fixed' || o.id === 'opt_wheelie_fold'));
-      const hasFender = (prev || []).some(o => o && (o.id === 'opt_fender_s' || o.id === 'opt_fender_l'));
-      let next = [...(prev || [])];
-      if (!hasWheelie && wheelieFixed) {
-        next = next.filter(o => o && o.id !== 'opt_wheelie_fixed' && o.id !== 'opt_wheelie_fold');
-        next.push(wheelieFixed);
-      }
-      if (!hasFender && fenderS) {
-        next = next.filter(o => o && o.id !== 'opt_fender_s' && o.id !== 'opt_fender_l');
-        next.push(fenderS);
-      }
-      return next;
-    });
-  }, [selections.baseModel?.id, selectedSeries, currentCatalog]);
+    if (!currentCatalog?.jwg1Options) return;
+    const jo = currentCatalog.jwg1Options;
+    const clutch = jo.clutchLever?.[0];
+    const ctrl = jo.controllerPos?.[0];
+    const sw = jo.switch?.[0];
+    setJwg1Selections(s => ({
+      clutchLever: s.clutchLever || clutch || null,
+      controllerPos: s.controllerPos || ctrl || null,
+      switch: s.switch || sw || null,
+    }));
+  }, [currentCatalog?.jwg1Options]);
+  useEffect(() => {
+    if (!currentCatalog?.dimensionRules) return;
+    const dr = currentCatalog.dimensionRules;
+    const offsetOnly = Array.isArray(dr.offset) && dr.offset.length === 1 ? dr.offset[0] : null;
+    const w2Only = Array.isArray(dr.w2) && dr.w2.length === 1 ? String(dr.w2[0]) : null;
+    const l8Only = offsetOnly && dr.l8Map?.[offsetOnly]?.length === 1 ? dr.l8Map[offsetOnly][0] : null;
+    if (offsetOnly || w2Only || l8Only != null) setDimensions(d => ({ ...d, ...(offsetOnly != null && { offset: offsetOnly }), ...(w2Only != null && { w2: w2Only }), ...(l8Only != null && { l8: l8Only }) }));
+  }, [currentCatalog?.dimensionRules?.offset, currentCatalog?.dimensionRules?.w2, currentCatalog?.dimensionRules?.l8Map]);
+  useSyncSchoolPackageOptions(selections, selectedSeries, currentCatalog, setSelectedOptions);
   const availableTires = useMemo(() => {
     if (!currentCatalog?.tireBrand) return [];
     const brand = TIRE_COLOR_MASTER[currentCatalog.tireBrand];
@@ -271,6 +273,27 @@ const App = () => {
     const exists = tires.find(t => t.name === selections.tire?.name);
     if (!exists) setSelections(prev => ({ ...prev, tire: tires[0] }));
   }, [selections.wheelSize, availableTires, currentCatalog]);
+  // キッズ（コトン以外）はメインホイール1種類のため、種類・サイズを自動セット（選択不要）
+  // フレームタイプ連動（ミニネオEジュニア等: ロー→20in、ミディ→22in）の場合は連動サイズのみ反映
+  const mainWheelFrameLinked = useMemo(() => getMainWheelDisplayForFrameLinkedCatalog(currentCatalog, frameParts?.type, selectedSeries), [currentCatalog, frameParts?.type, selectedSeries]);
+  useEffect(() => {
+    if (catalogVariant !== 'kids' || selectedSeries === 'COTON' || !currentCatalog?.wheels?.length) return;
+    if (mainWheelFrameLinked) {
+      const w = mainWheelFrameLinked.wheels[0];
+      const linkedSize = mainWheelFrameLinked.linkedSize;
+      if (!w || !linkedSize) return;
+      setSelections(prev => (prev.wheel?.id === w.id && prev.wheelSize === linkedSize ? prev : { ...prev, wheel: w, wheelSize: linkedSize }));
+      return;
+    }
+    if (currentCatalog.wheels.length !== 1) return;
+    const w = currentCatalog.wheels[0];
+    const sizes = currentCatalog.wheelSizes || [];
+    const defaultSize = sizes[0] || '24インチ';
+    setSelections(prev => {
+      if (prev.wheel?.id === w.id && (sizes.length <= 1 || prev.wheelSize === defaultSize)) return prev;
+      return { ...prev, wheel: w, wheelSize: sizes.length ? defaultSize : prev.wheelSize };
+    });
+  }, [catalogVariant, selectedSeries, currentCatalog?.wheels, currentCatalog?.wheelSizes, mainWheelFrameLinked]);
   const seriesCasterData = useMemo(() => {
     const isMxNeo = selectedSeries === 'MX_MR' || selectedSeries === 'NEO';
     return CASTER_WHEEL_DATA
@@ -302,9 +325,9 @@ const App = () => {
   useEffect(() => {
     if (selectedSeries === 'COTON' && armrestConfig.arm && !armrestSel.kind) {
       setArmrestSel(s => ({ ...s, kind: 'arm' }));
-    } else if (catalogVariant === 'kids' && (selectedSeries === 'MINI_NEO_A_KIDS' || selectedSeries === 'MINI_NEO_A_JUNIOR') && armrestConfig.arm && !armrestSel.kind) {
+    } else if (catalogVariant === 'kids' && (selectedSeries === 'MINI_NEO_A_KIDS' || selectedSeries === 'MINI_NEO_A_JUNIOR' || selectedSeries === 'MINI_NEO_E_KIDS' || selectedSeries === 'MINI_NEO_E_JUNIOR') && armrestConfig.arm && !armrestSel.kind) {
       setArmrestSel(s => ({ ...s, kind: 'arm' }));
-    } else if (catalogVariant === 'kids' && (selectedSeries === 'MINI_NEO_KIDS' || selectedSeries === 'MINI_NEO_JUNIOR') && (selections.baseModel?.id === 'kids_school' || selections.baseModel?.id === 'jr_school') && armrestConfig.arm && !armrestSel.kind) {
+    } else if (catalogVariant === 'kids' && (selectedSeries === 'MINI_NEO_KIDS' || selectedSeries === 'MINI_NEO_JUNIOR') && ['kids_school', 'jr_school', 'kids_school_less', 'jr_school_less'].includes(selections.baseModel?.id) && armrestConfig.arm && !armrestSel.kind) {
       const lh = selectedSeries === 'MINI_NEO_KIDS' ? 'ロー' : 'ハイ';
       setArmrestSel({ kind: 'arm', lh, ah: '', al: '' });
     }
@@ -312,22 +335,25 @@ const App = () => {
   // ミニネオキッズ・ジュニア: 高低選択未設定時はデフォルトで キッズ→ロー / ジュニア→ハイ をセット。スクールは上記で同時セット済み
   useEffect(() => {
     if (catalogVariant !== 'kids' || !armrestSel.kind) return;
-    const isSchool = selections.baseModel?.id === 'kids_school' || selections.baseModel?.id === 'jr_school';
+    const isSchool = ['kids_school', 'jr_school', 'kids_school_less', 'jr_school_less'].includes(selections.baseModel?.id);
     if (isSchool && armrestSel.kind === 'arm') return; // スクール標準は上記で lh 済み
     const group = armrestSel.kind === 'arm' ? armrestConfig.arm : armrestConfig.flip;
     if (selectedSeries === 'MINI_NEO_KIDS' && (group?.low || group?.high) && !armrestSel.lh) setArmrestSel(s => ({ ...s, lh: 'ロー' }));
     if (selectedSeries === 'MINI_NEO_JUNIOR' && (group?.low || group?.high) && !armrestSel.lh) setArmrestSel(s => ({ ...s, lh: 'ハイ' }));
   }, [catalogVariant, selectedSeries, armrestConfig.arm, armrestConfig.flip, armrestSel.kind, armrestSel.lh, selections.baseModel?.id]);
-  const optionsForGrid = useMemo(() => filterOptionsForSpecialSection(currentCatalog?.options || [], { selectedSeries, catalogVariant, selections }), [currentCatalog?.options, selectedSeries, catalogVariant, selections]);
+  const optionsForGrid = useMemo(() => filterOptionsForSpecialSection(currentCatalog?.options || [], { selectedSeries, catalogVariant, selections, currentCatalog }), [currentCatalog?.options, selectedSeries, catalogVariant, selections, currentCatalog]);
   const kidsOptionHandlers = useMemo(() => {
     const opts = currentCatalog?.options || [];
+    const uiGroups = currentCatalog?.uiRules?.optionDropdownGroups || [];
+    const hasGripOrPushGroup = uiGroups.some(g => g.key === 'gripOrPush');
     return {
       setPush: createSetPush(setSelectedOptions, opts.find(o => o.id === 'opt_push_fixed'), opts.find(o => o.id === 'opt_push_slide')),
       setWheelie: createSetWheelie(setSelectedOptions, opts.find(o => o.id === 'opt_wheelie_fixed'), opts.find(o => o.id === 'opt_wheelie_fold')),
       setFender: createSetFender(setSelectedOptions, opts.find(o => o.id === 'opt_fender_s'), opts.find(o => o.id === 'opt_fender_l')),
       setCushionTbl: createSetCushionTbl(setSelectedOptions, opts.find(o => o.id === 'opt_cushion_tbl_white'), opts.find(o => o.id === 'opt_cushion_tbl_blue'), opts.find(o => o.id === 'opt_cushion_tbl_pink')),
+      setGripOrPush: hasGripOrPushGroup ? createSetGripOrPush(setSelectedOptions, opts.find(o => o.id === 'opt_grip'), opts.find(o => o.id === 'opt_push_fixed'), opts.find(o => o.id === 'opt_push_slide')) : null,
     };
-  }, [setSelectedOptions, currentCatalog?.options]);
+  }, [setSelectedOptions, currentCatalog?.options, currentCatalog?.uiRules]);
   const [isConfirmed, setIsConfirmed] = useState(false);
   const [showConfirmReset, setShowConfirmReset] = useState(null);
   const [showFullResetConfirm, setShowFullResetConfirm] = useState(false);
@@ -396,12 +422,16 @@ const App = () => {
     const casterWheelOpts = (currentCatalog.dimensionRules.casterWheel || []).map(cw => (typeof cw === 'object' && cw?.value != null) ? cw.value : String(cw));
     const h2Opts = (currentCatalog.dimensionRules.h2Map && dimensions.casterWheel) ? (currentCatalog.dimensionRules.h2Map[dimensions.casterWheel] || []).map(String) : [];
     const h3Opts = (currentCatalog.dimensionRules.h3 || []).map(String);
+    const isAKidsOrAJr = selectedSeries === 'MINI_NEO_A_KIDS' || selectedSeries === 'MINI_NEO_A_JUNIOR';
+    const hasInterlockBrake = isAKidsOrAJr && (selectedOptions || []).some(o => o?.id === 'opt_interlock_br');
+    const leverBase = hasInterlockBrake ? (currentCatalog.dimensionRules.leverWhenInterlock || []) : (currentCatalog.dimensionRules.lever || []);
+    const leverOpts = isHorizontalBrake ? [] : leverBase.map(String);
     return {
       offset: (currentCatalog.dimensionRules.offset || []),
       h4Type: h4TypeKeys,
       h4Val: h4ValOpts,
       l8: (l8Options || []).map(String),
-      lever: isHorizontalBrake ? [] : (currentCatalog.dimensionRules.lever || []).map(String),
+      lever: leverOpts,
       w1: (w1Opts || []).map(String),
       l1: (l1Opts || []).map(String),
       sb: (sbOpts || []).map(String),
@@ -411,7 +441,7 @@ const App = () => {
       h2: h2Opts,
       h3: h3Opts,
     };
-  }, [currentCatalog, selectedSeries, dimensions.offset, dimensions.h4Type, dimensions.casterWheel, frameParts.size, derivedBackAngleValue, l8Options, camberOptions]);
+  }, [currentCatalog, selectedSeries, dimensions.offset, dimensions.h4Type, dimensions.casterWheel, frameParts.size, derivedBackAngleValue, l8Options, camberOptions, selectedOptions]);
   useEffect(() => {
     setDimensions(prev => {
       let next = { ...prev };
@@ -424,6 +454,9 @@ const App = () => {
             next[key] = single;
             changed = true;
           }
+        } else if (arr.length > 1 && prev[key] !== undefined && prev[key] !== '' && !arr.includes(String(prev[key]))) {
+          next[key] = '';
+          changed = true;
         }
       });
       return changed ? next : prev;
@@ -464,66 +497,29 @@ const App = () => {
       setFrameParts(p => ({ ...p, size: next }));
     }
   }, [selectedSeries, selections.baseModel?.id]);
-  // 確定表示前にチェックする必須項目（オプション・アクセサリー・選択肢1つの寸法は除く）。DIMENSION_LABELS は data_ui.js
-  const missingRequiredItems = useMemo(() => {
-    const missing = [];
-    if (!selectedSeries || !currentCatalog) return missing;
-    if (selectedSeries !== 'NEO' && currentCatalog.baseModels?.length && !selections.baseModel) missing.push('基本構成モデル');
-    if ((selectedSeries === 'MX_MR' || selectedSeries === 'NEO') && !selections.package) missing.push('パッケージ');
-    if (currentCatalog.frameOptions) {
-      const frameLabels = { type: 'フレームタイプ', shape: selectedSeries === 'NEO' ? 'フレーム前方形状' : '前方形状', length: '長さ', height: '高さ', pipe: 'フロントパイプ', size: 'サイズ', seat: 'シート' };
-      Object.keys(currentCatalog.frameOptions).forEach(cat => {
-        if (!frameParts[cat]) missing.push(frameLabels[cat] || cat);
-      });
-    }
-    if (selectedSeries === 'GWE') {
-      if (!gweUnitDetail?.unitId) missing.push('電動ユニット（GW-E）');
-      else if (GWE_UNIT_DETAIL_MASTER[gweUnitDetail.unitId]?.groups) {
-        GWE_UNIT_DETAIL_MASTER[gweUnitDetail.unitId].groups.forEach(g => {
-          if (!gweUnitDetail.parts?.[g.key]) missing.push(`電動ユニット - ${g.label}`);
-        });
-      }
-    }
-    if (selectedSeries !== 'COTON') {
-      if (currentCatalog.axleTypes?.length && !selections.axleType) missing.push('車軸タイプ');
-      if (currentCatalog.casterForks?.length && !selections.casterFork) missing.push('キャスターフォーク');
-      if (catalogVariant !== 'kids') {
-        if (!casterWheelType) missing.push('キャスターホイール（種類）');
-        if (casterWheelType && !casterWheelSize) missing.push('キャスターホイール（サイズ）');
-      }
-      if (currentCatalog.footrests?.length && !selections.footrest) missing.push('フットレスト');
-      if (currentCatalog.brakes?.length && !selections.brake) missing.push('ブレーキシステム');
-    }
-    if (selectedSeries !== 'GWE') {
-      const hasMainWheel = currentCatalog.wheels && currentCatalog.wheels.length > 0;
-      if (hasMainWheel && !selections.wheel) missing.push('メインホイール（種類）');
-      if (hasMainWheel && !selections.wheelSize) missing.push('メインホイール（サイズ）');
-      if (currentCatalog?.tireBrand && !selections.tire && catalogVariant !== 'kids') missing.push('タイヤカラー');
-      if (HANDRIM_OPTIONS?.length && !selections.handrim) missing.push('ハンドリム');
-    }
-    const cotonSkipDims = selectedSeries === 'COTON' ? ['l8', 'w2', 'cm', 'sb'] : [];
-    Object.entries(dimensionOptsMap || {}).forEach(([key, opts]) => {
-      if (cotonSkipDims.includes(key)) return;
-      const arr = Array.isArray(opts) ? opts : [];
-      if (arr.length <= 1) return;
-      if (key === 'h4Type' || key === 'h4Val') {
-        if (key === 'h4Type' && !dimensions.h4Type) missing.push(DIMENSION_LABELS.h4Type);
-        if (key === 'h4Val' && dimensions.h4Type && (!dimensions.h4Val || String(dimensions.h4Val).trim() === '')) missing.push(DIMENSION_LABELS.h4Val);
-        return;
-      }
-      if (key === 'h2' && !dimensions.casterWheel) return; // キャスター未選択時は h2 は問わない
-      if (key === 'h3' && arr.length <= 1) return; // 後座高が選択肢なし or 1つのみの機種は問わない
-      const val = dimensions[key];
-      if (val === undefined || val === null || String(val).trim() === '') missing.push(DIMENSION_LABELS[key] || key);
-    });
-    if (armrestSel.kind && (!armrestSel.lh || !armrestSel.ah)) missing.push('アームレスト（高低・高さ）');
-    if (armrestSel.kind && armrestConfig.armrestLengths?.length && (selectedSeries === 'MINI_NEO_KIDS' || selectedSeries === 'MINI_NEO_JUNIOR') && !armrestSel.al) missing.push('アームレスト長');
-    return missing;
-  }, [selectedSeries, currentCatalog, selections, frameParts, dimensionOptsMap, dimensions, casterWheelType, casterWheelSize, gweUnitDetail, armrestSel, catalogVariant, armrestConfig.armrestLengths]);
+  const missingRequiredItems = useMemo(() => computeMissingRequiredItems({
+    selectedSeries,
+    currentCatalog,
+    selections,
+    frameParts,
+    jwg1Selections,
+    dimensionOptsMap,
+    dimensions,
+    casterWheelType,
+    casterWheelSize,
+    gweUnitDetail,
+    armrestSel,
+    catalogVariant,
+    armrestConfig,
+    DIMENSION_LABELS,
+    GWE_UNIT_DETAIL_MASTER,
+    HANDRIM_OPTIONS,
+  }), [selectedSeries, currentCatalog, selections, frameParts, jwg1Selections, dimensionOptsMap, dimensions, casterWheelType, casterWheelSize, gweUnitDetail, armrestSel, catalogVariant, armrestConfig.armrestLengths]);
   const [showMissingRequired, setShowMissingRequired] = useState([]);
   useEffect(() => {
     if (missingRequiredItems.length === 0) setShowMissingRequired([]);
-  }, [missingRequiredItems.length]);
+    else if (showMissingRequired.length > 0) setShowMissingRequired(missingRequiredItems);
+  }, [missingRequiredItems, showMissingRequired.length]);
   // 車軸名称の動的計算
   const getAxleDisplayName = useCallback((item) => {
     if (!item) return '';
@@ -534,21 +530,21 @@ const App = () => {
     }
     return item.name;
   }, [selectedSeries, frameParts.height]);
-  // MX/MR/NEO / キッズカタログ: ハンドリムはアルマイト標準0円・ビニール追加料金、番号なし
+  // MX/MR/NEO / キッズカタログ: ハンドリムはアルマイト標準0円・ビニール追加料金、番号なし。ﾐﾆﾈｵ-Eはアルマイトのみ。ﾐﾆﾈｵ-Aキッズ・ジュニアはハンドリムなし
   const handrimOptionsForDisplay = useMemo(() => {
+    if (selectedSeries === 'MINI_NEO_A_KIDS' || selectedSeries === 'MINI_NEO_A_JUNIOR') return [];
+    if (currentCatalog?.handrims?.length) return currentCatalog.handrims.map(hr => ({ ...hr, no: hr.no || '' }));
     if (selectedSeries === 'MX_MR' || selectedSeries === 'NEO' || catalogVariant === 'kids') {
       return HANDRIM_OPTIONS.map(hr => {
         if (hr.id === 'hr_vinyl') {
-          // キッズは3000円、それ以外は5000円（マスター参照）
           const priceKey = catalogVariant === 'kids' ? 'handrim.vinyl.kids_extra' : 'handrim.vinyl.mxneo_extra';
           return { ...hr, no: '', priceKey };
         }
-        // それ以外は 0 円（priceKey なし）
         return { ...hr, no: '', priceKey: undefined };
       });
     }
     return HANDRIM_OPTIONS;
-  }, [selectedSeries, catalogVariant]);
+  }, [selectedSeries, catalogVariant, currentCatalog?.handrims]);
   const handrimResolved = useMemo(() => {
     if (!selections.handrim) return null;
     if (selectedSeries === 'MX_MR' || selectedSeries === 'NEO' || catalogVariant === 'kids') {
@@ -567,6 +563,7 @@ const App = () => {
       frameParts,
       paint,
       gweUnitDetail,
+      jwg1Selections,
       selectedOptions,
       selectedAccessories,
       casterWheelType,
@@ -576,7 +573,7 @@ const App = () => {
       gweUnitDetailMaster: GWE_UNIT_DETAIL_MASTER,
       wheelNoMaster: WHEEL_NO_MASTER,
     },
-  }), [currentCatalog, selections, selectedSeries, catalogVariant, frameParts, paint, gweUnitDetail, selectedOptions, selectedAccessories, casterWheelType, casterWheelSize, handrimResolved]);
+  }), [currentCatalog, selections, selectedSeries, catalogVariant, frameParts, paint, gweUnitDetail, jwg1Selections, selectedOptions, selectedAccessories, casterWheelType, casterWheelSize, handrimResolved]);
   const performSeriesReset = useCallback((key) => {
     setSelectedSeries(key);
     setSelections({
@@ -586,6 +583,7 @@ const App = () => {
     if (key === 'NEO' || key === 'MX_MR' || key === 'GWE') setArmrestSel({ kind: 'arm', lh: 'ロー', ah: '' });
     else setArmrestSel({ kind: '', lh: '', ah: '' });
     setFrameParts({ shape: null, length: null, height: null, pipe: null, size: null, type: null });
+    setJwg1Selections({ clutchLever: null, controllerPos: null, switch: null });
     setCasterWheelType(null); setCasterWheelSize(null);
     setSelectedOptions([]); setSelectedAccessories([]);
     setPaint({ type: 'standard', standardColor: '', customColors: ['', '', ''] });
@@ -735,7 +733,7 @@ const App = () => {
   // =====================================================
   const handleSendEmail = useCallback(() => {
     const date = new Date().toLocaleDateString('ja-JP');
-    const series = currentCatalog?.seriesName || selectedSeries || '';
+    const series = currentCatalog?.title || currentCatalog?.seriesName || selectedSeries || '';
     const dealer = customerInfo.dealer || '';
     const customer = customerInfo.name || '';
     // メール件名
@@ -917,8 +915,9 @@ const App = () => {
           </div>
         </div>
       )}
-      <nav className="bg-slate-900 text-white p-5 fixed top-0 inset-x-0 z-50 shadow-xl border-b border-white/5">
-        <div className="max-w-7xl mx-auto flex justify-between items-center gap-2 min-w-0">
+      <div className="fixed top-0 inset-x-0 z-50">
+        <nav className="bg-slate-900 text-white p-5 shadow-xl border-b border-white/5">
+          <div className="max-w-7xl mx-auto flex justify-between items-center gap-2 min-w-0">
           <div className="flex items-center gap-3 min-w-0 shrink">
             <div className={`${accent.navIcon} p-2.5 rounded-xl shrink-0`}><Settings size={20} /></div>
             <div className="min-w-0">
@@ -930,16 +929,19 @@ const App = () => {
             <div className="flex flex-col text-right min-w-0">
               <span className={`text-xs font-bold ${accent.subtotal} uppercase mb-1 leading-none`}>Subtotal</span>
               <span className={`text-lg md:text-2xl font-black font-mono tracking-tighter ${accent.subtotal} leading-none`}>¥{totalAmount.toLocaleString()}</span>
-              {showMissingRequired.length > 0 && (
-                <span className="text-[11px] font-bold text-amber-400 mt-1 leading-none">未選択の項目があります</span>
-              )}
             </div>
           </div>
         </div>
-      </nav>
+        </nav>
+        {showMissingRequired.length > 0 && (
+          <div className="bg-amber-50 border-b border-amber-400 text-center py-1.5 px-2 shadow-sm" aria-hidden="true" data-missing-warning-bar>
+            <span className="text-[11px] font-bold text-amber-800">未選択の項目があります</span>
+          </div>
+        )}
+      </div>
       {/* Home（トップ画面）と Top（画面一番上）: 黒帯から出たフロートでスマホでも Subtotal と重ならない */}
       <div
-        className="fixed left-3 z-50 flex items-center gap-1.5 rounded-b-xl bg-slate-900 text-white shadow-lg border border-t-0 border-white/10 no-print"
+        className="fixed left-3 z-[60] flex items-center gap-1.5 rounded-b-xl bg-slate-900 text-white shadow-lg border border-t-0 border-white/10 no-print"
         style={{ top: '5.75rem' }}
         aria-label="ナビゲーション"
       >
@@ -984,6 +986,7 @@ const App = () => {
             onClick={() => {
               if (missingRequiredItems.length > 0) {
                 setShowMissingRequired(missingRequiredItems);
+                requestAnimationFrame(() => { requestAnimationFrame(() => scrollToFirstMissingItem(missingRequiredItems[0])); });
                 return;
               }
               setShowMissingRequired([]);
@@ -995,8 +998,8 @@ const App = () => {
           </button>
         </div>
       )}
-      {/* ナビ高さ + Home/Top フロート分の余白で「1. 機種シリーズ選択」にかぶらない */}
-      <div className="h-[140px]" />
+      {/* ナビ高さ + Home/Top フロート分の余白で「1. 機種シリーズ選択」にかぶらない（未選択警告バー表示時は余白を追加） */}
+      <div className={showMissingRequired.length > 0 ? 'h-[170px]' : 'h-[140px]'} />
       <main className="max-w-7xl mx-auto p-3 sm:p-4 md:p-8">
         {!isConfirmed ? (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
@@ -1025,7 +1028,7 @@ const App = () => {
                   {selectedSeries === 'GWE' && (() => {
                     const gweBlockInvalid = showMissingRequired.includes('電動ユニット（GW-E）');
                     return (
-                    <div className={`rounded-2xl shadow-sm overflow-hidden mb-6 border-2 ${gweBlockInvalid ? 'border-red-500 bg-red-50' : 'border border-slate-200 bg-white'}`}>
+                    <div className={`rounded-2xl shadow-sm overflow-hidden mb-6 border-2 ${gweBlockInvalid ? 'border-red-500 bg-red-50' : 'border border-slate-200 bg-white'}`} data-required-label="電動ユニット（GW-E）">
                       <div className={`px-5 py-4 border-b flex items-center justify-between ${gweBlockInvalid ? 'border-red-200 bg-red-100' : 'border-slate-200 bg-slate-50'}`}>
                         <h3 className="font-bold text-slate-800 tracking-widest uppercase text-xs">電動ユニット（GW-E）</h3>
                       </div>
@@ -1044,7 +1047,7 @@ const App = () => {
                             {GWE_UNIT_DETAIL_MASTER[gweUnitDetail.unitId].groups.map(g => {
                               const gweGroupInvalid = showMissingRequired.includes(`電動ユニット - ${g.label}`);
                               return (
-                              <div key={g.key} className={`rounded-2xl p-4 border-2 ${gweGroupInvalid ? 'border-red-500 bg-red-50' : 'border border-slate-200 bg-white'}`}>
+                              <div key={g.key} className={`rounded-2xl p-4 border-2 ${gweGroupInvalid ? 'border-red-500 bg-red-50' : 'border border-slate-200 bg-white'}`} data-required-label={`電動ユニット - ${g.label}`}>
                                 <label className="block text-xs font-black text-slate-600 uppercase mb-2">{g.label}</label>
                                 <select className="w-full bg-slate-50 border-2 rounded-xl p-3 text-sm font-black outline-none" value={gweUnitDetail.parts?.[g.key]?.id || ''} onChange={e => {
                                   const choice = g.choices.find(c => c.id === e.target.value);
@@ -1074,26 +1077,64 @@ const App = () => {
                           const frameCatLabel = cat === 'type' ? 'フレームタイプ' : cat === 'shape' ? (selectedSeries === 'NEO' ? 'フレーム前方形状' : '前方形状') : cat === 'length' ? '長さ' : cat === 'height' ? '高さ' : cat === 'size' ? 'サイズ' : cat === 'seat' ? 'シート' : 'フロントパイプ';
                           const frameCatInvalid = showMissingRequired.includes(frameCatLabel);
                           return (
-                          <div key={cat} className={`space-y-3 rounded-xl p-3 border-2 ${frameCatInvalid ? 'border-red-500 bg-red-50' : 'border-transparent'}`}>
+                          <div key={cat} className={`space-y-3 rounded-xl p-3 border-2 ${frameCatInvalid ? 'border-red-500 bg-red-50' : 'border-transparent'}`} data-required-label={frameCatLabel}>
                             <label className="block text-xs font-black text-slate-600 uppercase mb-1 tracking-widest">
                               {cat === 'type' ? 'フレームタイプ' : cat === 'shape' ? (selectedSeries === 'NEO' ? 'フレーム前方形状' : '前方形状') : cat === 'length' ? '長さ' : cat === 'height' ? '高さ' : cat === 'size' ? 'サイズ' : cat === 'seat' ? 'シート' : 'フロントパイプ'}
                             </label>
                             <div className="flex flex-col gap-1.5">
-                              {(currentCatalog.frameOptions[cat] || []).map(opt => {
-                                const optObj = (typeof opt === 'string') ? { label: opt, no: opt } : opt;
-                                const price = (optObj.price != null && optObj.price > 0) ? optObj.price : 0;
-                                return (
-                                  <button type="button"  key={optObj.label} onClick={() => setFrameParts(p => ({ ...p, [cat]: optObj }))} className={`p-4 text-left border rounded-xl text-xs font-bold transition-all ${frameParts[cat]?.label === optObj.label ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-600 hover:border-blue-300'}`}>
-                                    <div className="flex items-center justify-between gap-3">
-                                      <span className="text-xs font-black">{optObj.label}</span>
-                                      <div className="flex items-center gap-2">
-                                        {optObj.no && <span className={`text-[11px] font-mono font-black ${frameParts[cat]?.label === optObj.label ? 'text-white/90' : 'text-slate-600'}`}>{optObj.no}</span>}
-                                        {price > 0 && <span className={`text-[10px] font-mono font-black ${frameParts[cat]?.label === optObj.label ? 'text-white/90' : 'text-blue-600'}`}>+¥{price.toLocaleString()}</span>}
+                              {(() => {
+                                const typeOpts = (currentCatalog.frameOptions[cat] || []).map(opt => (typeof opt === 'string') ? { label: opt, no: opt } : opt);
+                                const isFrameTypeWithWheelLink = cat === 'type' && typeOpts.some(o => getMainWheelSizeByFrameType(o) === '20インチ') && typeOpts.some(o => getMainWheelSizeByFrameType(o) === '22インチ');
+                                if (isFrameTypeWithWheelLink) {
+                                  const low = typeOpts.filter(o => getMainWheelSizeByFrameType(o) === '20インチ');
+                                  const midi = typeOpts.filter(o => getMainWheelSizeByFrameType(o) === '22インチ');
+                                  const renderTypeBtn = (optObj) => {
+                                    const price = (optObj.price != null && optObj.price > 0) ? optObj.price : 0;
+                                    return (
+                                      <button type="button" key={optObj.label} onClick={() => setFrameParts(p => ({ ...p, [cat]: optObj }))} className={`p-4 text-left border rounded-xl text-xs font-bold transition-all ${frameParts[cat]?.label === optObj.label ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-600 hover:border-blue-300'}`}>
+                                        <div className="flex items-center justify-between gap-3">
+                                          <span className="text-xs font-black">{optObj.label}</span>
+                                          <div className="flex items-center gap-2">
+                                            {optObj.no && <span className={`text-[11px] font-mono font-black ${frameParts[cat]?.label === optObj.label ? 'text-white/90' : 'text-slate-600'}`}>{optObj.no}</span>}
+                                            {price > 0 && <span className={`text-[10px] font-mono font-black ${frameParts[cat]?.label === optObj.label ? 'text-white/90' : 'text-blue-600'}`}>+¥{price.toLocaleString()}</span>}
+                                          </div>
+                                        </div>
+                                      </button>
+                                    );
+                                  };
+                                  return (
+                                    <>
+                                      {low.length > 0 && (
+                                        <div className="space-y-1.5">
+                                          <p className="text-[11px] font-black text-slate-500 uppercase tracking-wider pt-0.5 border-t border-slate-200 first:border-t-0 first:pt-0">後輪20インチ</p>
+                                          {low.map(optObj => renderTypeBtn(optObj))}
+                                        </div>
+                                      )}
+                                      {midi.length > 0 && (
+                                        <div className="space-y-1.5">
+                                          <p className="text-[11px] font-black text-slate-500 uppercase tracking-wider pt-0.5 border-t border-slate-200 mt-1.5 pt-2">後輪22インチ</p>
+                                          {midi.map(optObj => renderTypeBtn(optObj))}
+                                        </div>
+                                      )}
+                                    </>
+                                  );
+                                }
+                                return (currentCatalog.frameOptions[cat] || []).map(opt => {
+                                  const optObj = (typeof opt === 'string') ? { label: opt, no: opt } : opt;
+                                  const price = (optObj.price != null && optObj.price > 0) ? optObj.price : 0;
+                                  return (
+                                    <button type="button"  key={optObj.label} onClick={() => setFrameParts(p => ({ ...p, [cat]: optObj }))} className={`p-4 text-left border rounded-xl text-xs font-bold transition-all ${frameParts[cat]?.label === optObj.label ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-600 hover:border-blue-300'}`}>
+                                      <div className="flex items-center justify-between gap-3">
+                                        <span className="text-xs font-black">{optObj.label}</span>
+                                        <div className="flex items-center gap-2">
+                                          {optObj.no && <span className={`text-[11px] font-mono font-black ${frameParts[cat]?.label === optObj.label ? 'text-white/90' : 'text-slate-600'}`}>{optObj.no}</span>}
+                                          {price > 0 && <span className={`text-[10px] font-mono font-black ${frameParts[cat]?.label === optObj.label ? 'text-white/90' : 'text-blue-600'}`}>+¥{price.toLocaleString()}</span>}
+                                        </div>
                                       </div>
-                                    </div>
-                                  </button>
-                                );
-                              })}
+                                    </button>
+                                  );
+                                });
+                              })()}
                             </div>
                           </div>
                         ); })}
@@ -1116,7 +1157,7 @@ const App = () => {
                   <div className={`rounded-2xl shadow-sm overflow-hidden mb-6 border-2 ${casterBlockInvalid ? 'border-red-500 bg-red-50' : 'border border-slate-200 bg-white'}`}>
                     <div className={`px-5 py-3 border-b font-bold text-slate-800 tracking-widest uppercase text-xs ${casterBlockInvalid ? 'border-red-200 bg-red-100' : 'border-slate-200 bg-slate-50'}`}>キャスターホイール</div>
                     <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-8">
-                      <div className={casterTypeInvalid ? 'rounded-xl p-3 border-2 border-red-500 bg-red-50' : ''}>
+                      <div className={casterTypeInvalid ? 'rounded-xl p-3 border-2 border-red-500 bg-red-50' : ''} data-required-label="キャスターホイール（種類）">
                         <label className="block text-xs font-black text-slate-600 uppercase mb-2">A. 種類</label>
                         <div className="grid grid-cols-1 gap-2">
                           {seriesCasterData.filter(cw => currentCatalog.hasCushionCaster || cw.type !== 'クッションキャスター').map(cw => (
@@ -1126,7 +1167,7 @@ const App = () => {
                           ))}
                         </div>
                       </div>
-                      <div className={casterSizeInvalid ? 'rounded-xl p-3 border-2 border-red-500 bg-red-50' : ''}>
+                      <div className={casterSizeInvalid ? 'rounded-xl p-3 border-2 border-red-500 bg-red-50' : ''} data-required-label="キャスターホイール（サイズ）">
                         <label className="block text-xs font-black text-slate-600 uppercase mb-2">B. サイズ</label>
                         <select disabled={!casterWheelType} className="w-full bg-slate-50 border-2 rounded-xl p-4 text-sm font-black outline-none disabled:opacity-20 transition-all" value={casterWheelSize?.no || ''} onChange={e => setCasterWheelSize(casterWheelType?.sizes?.find(s => s.no === e.target.value))}>
                           <option value="">-- 選択 --</option>
@@ -1136,6 +1177,42 @@ const App = () => {
                     </div>
                   </div>
                   ); })()}
+                  {currentCatalog.jwg1Options && (
+                    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-6">
+                      <div className="bg-slate-50 px-5 py-4 border-b border-slate-200">
+                        <h3 className="font-bold text-slate-800 tracking-widest uppercase text-xs">新型電動ユニット JWG-1</h3>
+                      </div>
+                      <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-8">
+                        <div className={`space-y-3 rounded-xl p-3 border-2 ${showMissingRequired.includes('クラッチレバー位置') ? 'border-red-500 bg-red-50' : 'border-transparent'}`} data-required-label="クラッチレバー位置">
+                          <label className="block text-xs font-black text-slate-600 uppercase mb-1 tracking-widest">クラッチレバー位置</label>
+                          <div className="flex flex-col gap-1.5">
+                            {(currentCatalog.jwg1Options.clutchLever || []).map(opt => (
+                              <button type="button" key={opt.label} onClick={() => setJwg1Selections(s => ({ ...s, clutchLever: opt }))} className={`p-4 text-left border rounded-xl text-xs font-bold transition-all ${jwg1Selections.clutchLever?.label === opt.label ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-600 hover:border-blue-300'}`}>{opt.label}</button>
+                            ))}
+                          </div>
+                        </div>
+                        <div className={`space-y-3 rounded-xl p-3 border-2 ${showMissingRequired.includes('コントローラー位置') ? 'border-red-500 bg-red-50' : 'border-transparent'}`} data-required-label="コントローラー位置">
+                          <label className="block text-xs font-black text-slate-600 uppercase mb-1 tracking-widest">コントローラー位置</label>
+                          <div className="flex flex-col gap-1.5">
+                            {(currentCatalog.jwg1Options.controllerPos || []).map(opt => (
+                              <button type="button" key={opt.label} onClick={() => setJwg1Selections(s => ({ ...s, controllerPos: opt }))} className={`p-4 text-left border rounded-xl text-xs font-bold transition-all ${jwg1Selections.controllerPos?.label === opt.label ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-600 hover:border-blue-300'}`}>{opt.label}</button>
+                            ))}
+                          </div>
+                        </div>
+                        <div className={`space-y-3 rounded-xl p-3 border-2 ${showMissingRequired.includes('スイッチ') ? 'border-red-500 bg-red-50' : 'border-transparent'}`} data-required-label="スイッチ">
+                          <label className="block text-xs font-black text-slate-600 uppercase mb-1 tracking-widest">スイッチ</label>
+                          <div className="flex flex-col gap-1.5">
+                            {(currentCatalog.jwg1Options.switch || []).map(opt => (
+                              <button type="button" key={opt.id || opt.label} onClick={() => setJwg1Selections(s => ({ ...s, switch: opt }))} className={`p-4 text-left border rounded-xl text-xs font-bold transition-all ${jwg1Selections.switch?.id === opt.id ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-600 hover:border-blue-300'}`}>
+                                <span className="font-black">{opt.label}</span>
+                                {(opt.priceKey || (opt.price && opt.price > 0)) && <span className="block text-[10px] font-mono text-blue-600 mt-1">+¥{(itemPrice(opt) ?? 0).toLocaleString()}</span>}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                   {currentCatalog.footrests && <SelectionGroup title="フットレスト" items={currentCatalog.footrests} selectionKey="footrest" isInvalid={showMissingRequired.includes('フットレスト')} selections={selections} setSelections={setSelections} />}
                     </>
                   )}
@@ -1161,31 +1238,42 @@ const App = () => {
                     const wheelSizeInvalid = showMissingRequired.includes('メインホイール（サイズ）');
                     const tireInvalid = showMissingRequired.includes('タイヤカラー');
                     const mainWheelBlockInvalid = wheelTypeInvalid || wheelSizeInvalid || tireInvalid;
+                    const displayWheels = mainWheelFrameLinked?.wheels ?? currentCatalog.wheels ?? [];
+                    const displayWheelSizes = mainWheelFrameLinked?.wheelSizes ?? currentCatalog.wheelSizes;
+                    const isSingleSizeDisplay = (catalogVariant === 'kids' && selectedSeries !== 'COTON' && (displayWheelSizes?.length === 1)) || !!mainWheelFrameLinked;
+                    const hideTypeBlock = selectedSeries === 'MX_MR' || selectedSeries === 'NEO' || (catalogVariant === 'kids' && selectedSeries !== 'COTON' && displayWheels.length === 1);
                     return (
                     <div className={`rounded-2xl shadow-sm overflow-hidden mb-6 border-2 ${mainWheelBlockInvalid ? 'border-red-500 bg-red-50' : 'border border-slate-200 bg-white'}`}>
                       <div className={`px-5 py-3 border-b font-bold text-slate-800 tracking-widest uppercase text-xs ${mainWheelBlockInvalid ? 'border-red-200 bg-red-100' : 'border-slate-200 bg-slate-50'}`}>メインホイール構成</div>
                       <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-8">
                         <div>
-                          {!(selectedSeries === 'MX_MR' || selectedSeries === 'NEO') && (
-                            <div className={`mb-6 ${wheelTypeInvalid ? 'rounded-xl p-3 border-2 border-red-500 bg-red-50' : ''}`}>
+                          {!hideTypeBlock && (
+                            <div className={`mb-6 ${wheelTypeInvalid ? 'rounded-xl p-3 border-2 border-red-500 bg-red-50' : ''}`} data-required-label="メインホイール（種類）">
                               <label className="block text-xs font-black text-slate-600 uppercase mb-2">A. 種類</label>
                               <div className="grid grid-cols-1 gap-2">
-                                {(currentCatalog.wheels || []).map(w => (
-                                  <button type="button"  key={w.id} onClick={() => setSelections(prev => ({...prev, wheel: w, wheelSize: (currentCatalog.wheelSizes || WHEEL_SIZE_RULES?.[w.id] || ['24インチ'])[0]}))} className={`p-4 text-left border rounded-xl text-xs font-bold transition-all ${selections.wheel?.id === w.id ? 'border-blue-600 bg-blue-50 ring-1 ring-blue-600 shadow-sm' : 'border-slate-100 bg-white hover:border-blue-300 shadow-sm'}`}>
+                                {displayWheels.map(w => (
+                                  <button type="button"  key={w.id} onClick={() => setSelections(prev => ({...prev, wheel: w, wheelSize: (displayWheelSizes || WHEEL_SIZE_RULES?.[w.id] || ['24インチ'])[0]}))} className={`p-4 text-left border rounded-xl text-xs font-bold transition-all ${selections.wheel?.id === w.id ? 'border-blue-600 bg-blue-50 ring-1 ring-blue-600 shadow-sm' : 'border-slate-100 bg-white hover:border-blue-300 shadow-sm'}`}>
                                     <span className="text-[11px] block opacity-80 uppercase leading-none mb-1 text-slate-600">{getWheelNo(w, selections.wheelSize)}</span>{w.name} (+¥{w.price.toLocaleString()})
                                   </button>
                                 ))}
                               </div>
                             </div>
                           )}
-                          <div className={`mb-6 ${wheelSizeInvalid ? 'rounded-xl p-3 border-2 border-red-500 bg-red-50' : ''}`}>
+                          <div className={`mb-6 ${wheelSizeInvalid ? 'rounded-xl p-3 border-2 border-red-500 bg-red-50' : ''}`} data-required-label="メインホイール（サイズ）">
                             <label className="block text-xs font-black text-slate-600 uppercase mb-2">B. サイズ</label>
-                            <select className="w-full bg-slate-50 border-2 rounded-xl p-4 text-sm font-black outline-none transition-all" value={selections.wheelSize} onChange={e => setSelections({...selections, wheelSize: e.target.value})}>
-                              { (selectedSeries === 'LX_LR' || selectedSeries === 'FX_FR') ? ['24インチ'].map(v => <option key={v} value={v}>{v}</option>) : (selectedSeries === 'MX_MR' || selectedSeries === 'NEO') ? ['22インチ','23インチ','24インチ','25インチ'].map(v => <option key={v} value={v}>{v}</option>) : (currentCatalog.wheelSizes || WHEEL_SIZE_RULES?.[selections.wheel?.id] || ['--']).map(v => <option key={v} value={v} disabled={currentCatalog.blockSmallWheels && (v==='22インチ' || v==='23インチ')}>{v}</option>) }
-                            </select>
+                            {isSingleSizeDisplay ? (
+                              <div className="p-4 bg-slate-50 border-2 border-slate-200 rounded-xl">
+                                <p className="text-sm font-black text-slate-700">標準 {(displayWheelSizes && displayWheelSizes[0]) || currentCatalog.wheelSizes?.[0]}</p>
+                                {selectedSeries !== 'MINI_NEO_A_KIDS' && selectedSeries !== 'MINI_NEO_A_JUNIOR' && !mainWheelFrameLinked && <p className="text-[11px] text-slate-500 mt-1">※スポーク本数/28本</p>}
+                              </div>
+                            ) : (
+                              <select className="w-full bg-slate-50 border-2 rounded-xl p-4 text-sm font-black outline-none transition-all" value={selections.wheelSize} onChange={e => setSelections({...selections, wheelSize: e.target.value})}>
+                                { (selectedSeries === 'LX_LR' || selectedSeries === 'FX_FR') ? ['24インチ'].map(v => <option key={v} value={v}>{v}</option>) : (selectedSeries === 'MX_MR' || selectedSeries === 'NEO') ? ['22インチ','23インチ','24インチ','25インチ'].map(v => <option key={v} value={v}>{v}</option>) : (displayWheelSizes || WHEEL_SIZE_RULES?.[selections.wheel?.id] || ['--']).map(v => <option key={v} value={v} disabled={currentCatalog.blockSmallWheels && (v==='22インチ' || v==='23インチ')}>{v}</option>) }
+                              </select>
+                            )}
                           </div>
                           {currentCatalog?.tireBrand && (
-                            <div className={`mb-6 ${tireInvalid ? 'rounded-xl p-3 border-2 border-red-500 bg-red-50' : ''}`}>
+                            <div className={`mb-6 ${tireInvalid ? 'rounded-xl p-3 border-2 border-red-500 bg-red-50' : ''}`} data-required-label="タイヤカラー">
                               <label className="block text-xs font-black text-slate-600 uppercase mb-2">C. タイヤカラー ({currentCatalog.tireBrand})</label>
                               <div className="grid grid-cols-2 gap-2">
                                 {availableTires.map(t => (
@@ -1198,7 +1286,7 @@ const App = () => {
                             </div>
                           )}
                         </div>
-                        <SelectionGroup title="ハンドリム" items={handrimOptionsForDisplay} selectionKey="handrim" isInvalid={showMissingRequired.includes('ハンドリム')} selections={selections} setSelections={setSelections} />
+                        {handrimOptionsForDisplay.length > 0 && <SelectionGroup title="ハンドリム" items={handrimOptionsForDisplay} selectionKey="handrim" isInvalid={showMissingRequired.includes('ハンドリム')} selections={selections} setSelections={setSelections} />}
                       </div>
                     </div>
                   ); })()}
@@ -1344,7 +1432,7 @@ const App = () => {
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
                       {((selectedSeries === 'NEOplus' || selectedSeries === 'NEO') || (catalogVariant === 'kids' && (currentCatalog.dimensionRules?.offset || []).length > 0)) && (
-                        <div className={`space-y-4 p-5 rounded-3xl border-2 shadow-inner ${showMissingRequired.includes('オフセット') ? 'border-red-500 bg-red-50' : 'bg-slate-50 border border-blue-100/50'}`}>
+                        <div className={`space-y-4 p-5 rounded-3xl border-2 shadow-inner ${showMissingRequired.includes('オフセット') ? 'border-red-500 bg-red-50' : 'bg-slate-50 border border-blue-100/50'}`} data-required-label="オフセット">
                           <label className="block text-[10px] font-black text-blue-600 uppercase mb-1 tracking-widest italic">オフセット</label>
                           <select className="w-full bg-white border border-slate-200 rounded-xl p-3 text-sm font-bold outline-none" value={dimensions.offset} onChange={e => {
                             const val = e.target.value;
@@ -1364,7 +1452,7 @@ const App = () => {
                       )}
                       {((currentCatalog.dimensionRules?.casterWheel || []).length > 0) && (
                         <>
-                          <div className={`space-y-4 p-5 rounded-3xl border-2 shadow-inner ${showMissingRequired.includes('D2 キャスターホイール径') ? 'border-red-500 bg-red-50' : 'bg-slate-50 border border-blue-100/50'}`}>
+                          <div className={`space-y-4 p-5 rounded-3xl border-2 shadow-inner ${showMissingRequired.includes('D2 キャスターホイール径') ? 'border-red-500 bg-red-50' : 'bg-slate-50 border border-blue-100/50'}`} data-required-label="D2 キャスターホイール径">
                             <label className="block text-[10px] font-black text-blue-600 uppercase mb-1 tracking-widest italic">D2 キャスターホイール径</label>
                             <select className="w-full bg-white border border-slate-200 rounded-xl p-3 text-sm font-bold outline-none" value={dimensions.casterWheel} onChange={e => {
                               const val = e.target.value;
@@ -1384,7 +1472,7 @@ const App = () => {
                               })}
                             </select>
                           </div>
-                          <div className={`space-y-4 p-5 rounded-3xl border-2 shadow-inner ${showMissingRequired.includes('H2 前座高') ? 'border-red-500 bg-red-50' : 'bg-slate-50 border border-blue-100/50'}`}>
+                          <div className={`space-y-4 p-5 rounded-3xl border-2 shadow-inner ${showMissingRequired.includes('H2 前座高') ? 'border-red-500 bg-red-50' : 'bg-slate-50 border border-blue-100/50'}`} data-required-label="H2 前座高">
                             <label className="block text-[10px] font-black text-blue-600 uppercase mb-1 tracking-widest italic">H2 前座高</label>
                             <select className="w-full bg-white border border-slate-200 rounded-xl p-3 text-sm font-bold outline-none" value={dimensions.h2} onChange={e => setDimensions(d => ({ ...d, h2: e.target.value }))} disabled={!dimensions.casterWheel}>
                               <option value="">{dimensions.casterWheel ? '選択' : 'キャスター径を先に選択'}</option>
@@ -1394,7 +1482,7 @@ const App = () => {
                         </>
                       )}
                       {((currentCatalog.dimensionRules?.h3 || []).length > 0) && (
-                        <div className={`space-y-4 p-5 rounded-3xl border-2 shadow-inner ${showMissingRequired.includes('H3 後座高') ? 'border-red-500 bg-red-50' : 'bg-slate-50 border border-blue-100/50'}`}>
+                        <div className={`space-y-4 p-5 rounded-3xl border-2 shadow-inner ${showMissingRequired.includes('H3 後座高') ? 'border-red-500 bg-red-50' : 'bg-slate-50 border border-blue-100/50'}`} data-required-label="H3 後座高">
                           <label className="block text-[10px] font-black text-blue-600 uppercase mb-1 tracking-widest italic">H3 後座高（リアシート高）</label>
                           <select className="w-full bg-white border border-slate-200 rounded-xl p-3 text-sm font-bold outline-none" value={dimensions.h3} onChange={e => setDimensions(d => ({ ...d, h3: e.target.value }))}>
                             <option value="">選択</option>
@@ -1403,18 +1491,20 @@ const App = () => {
                           <p className="text-[9px] text-slate-500 italic">規格寸法です。±5mm程度の後座高誤差が出る場合があります。</p>
                         </div>
                       )}
-                      <div className={`space-y-2 p-5 rounded-3xl border-2 shadow-inner ${(showMissingRequired.includes('H4 バック高（タイプ）') || showMissingRequired.includes('H4 バック高（値）')) ? 'border-red-500 bg-red-50' : 'bg-slate-50 border border-slate-200/50'}`}>
+                      <div className={`space-y-2 p-5 rounded-3xl border-2 shadow-inner ${(showMissingRequired.includes('H4 バック高（タイプ）') || showMissingRequired.includes('H4 バック高（値）')) ? 'border-red-500 bg-red-50' : 'bg-slate-50 border border-slate-200/50'}`} data-required-label="H4 バック高（タイプ）">
                         <label className="block text-xs font-black text-slate-600 uppercase mb-1 tracking-widest italic">H4 バック高</label>
                         <select className="w-full bg-white border rounded-xl p-2 text-xs font-bold outline-none mb-2" value={dimensions.h4Type} onChange={e => setDimensions(d => ({...d, h4Type: e.target.value}))}>
                           {(dimensionOptsMap.h4Type || []).length > 1 && <option value="">選択</option>}
                           {(dimensionOptsMap.h4Type || []).map(v => <option key={v} value={v}>{v}</option>)}
                         </select>
+                        <div data-required-label="H4 バック高（値）">
                         <select className="w-full bg-white border rounded-xl p-2 text-xs font-bold outline-none" value={dimensions.h4Val} onChange={e => setDimensions(d => ({...d, h4Val: e.target.value}))}>
                           {((dimensionOptsMap.h4Val || []).length > 1) && <option value="">選択</option>}
                           {(dimensionOptsMap.h4Val || []).map(v => <option key={v} value={v}>{v}mm</option>)}
                         </select>
+                        </div>
                       </div>
-                      <div className={`space-y-4 p-5 rounded-3xl border-2 shadow-inner ${(showMissingRequired.includes(DIMENSION_LABELS.l8) || showMissingRequired.includes(DIMENSION_LABELS.lever)) ? 'border-red-500 bg-red-50' : 'bg-slate-50 border border-slate-200/50'}`}>
+                      <div className={`space-y-4 p-5 rounded-3xl border-2 shadow-inner ${(showMissingRequired.includes(DIMENSION_LABELS.l8) || showMissingRequired.includes(DIMENSION_LABELS.lever)) ? 'border-red-500 bg-red-50' : 'bg-slate-50 border border-slate-200/50'}`} data-required-label={DIMENSION_LABELS.l8}>
                         {!['LX_LR', 'FX_FR', 'COTON'].includes(selectedSeries) && (
                           <div className="space-y-1">
                             <label className="block text-xs font-black text-slate-600 uppercase tracking-widest italic">車軸前後位置 (L8)</label>
@@ -1432,12 +1522,15 @@ const App = () => {
                               ホリゾンタル選択時は不要
                             </div>
                           </div>
-                        ) : (currentCatalog?.dimensionRules?.lever || []).length > 0 ? (
-                          <div className="space-y-1">
+                        ) : (dimensionOptsMap.lever || []).length > 0 ? (
+                          <div className="space-y-1" data-required-label={DIMENSION_LABELS.lever}>
                             <label className="block text-xs font-black text-slate-600 uppercase tracking-widest italic">ブレーキレバー長</label>
+                            {(selectedSeries === 'MINI_NEO_A_KIDS' || selectedSeries === 'MINI_NEO_A_JUNIOR') && (selectedOptions || []).some(o => o?.id === 'opt_interlock_br') && (
+                              <p className="text-[10px] text-amber-700 font-bold mb-1">※()内は【オプション】「連動ブレーキ」の選択寸法となります。</p>
+                            )}
                             <select className="w-full bg-white border rounded-xl p-2 text-xs font-bold outline-none" value={dimensions.lever} onChange={e => setDimensions(d => ({...d, lever: e.target.value}))}>
-                              {(currentCatalog.dimensionRules?.lever || []).length > 1 && <option value="">選択</option>}
-                              {(currentCatalog.dimensionRules?.lever || []).map(v => <option key={v} value={v}>{v}mm</option>)}
+                              {(dimensionOptsMap.lever || []).length > 1 && <option value="">選択</option>}
+                              {(dimensionOptsMap.lever || []).map(v => <option key={v} value={v}>{v === '無し' ? '無し' : v + 'mm'}</option>)}
                             </select>
                           </div>
                         ) : null}
@@ -1464,7 +1557,7 @@ const App = () => {
                           const dimLabel = { w1: '座幅(W1)', l1: '座奥行(L1)', sb: 'バックレスト角(SB)', w2: 'ハンドリム間隔(W2)', cm: 'キャンバー' }[k];
                           const dimInvalid = showMissingRequired.includes(dimLabel);
                           return (
-                            <div key={k} className={`w-20 text-center ${dimInvalid ? 'rounded-xl p-2 border-2 border-red-500 bg-red-50' : ''}`}>
+                            <div key={k} className={`w-20 text-center ${dimInvalid ? 'rounded-xl p-2 border-2 border-red-500 bg-red-50' : ''}`} data-required-label={dimLabel}>
                               <span className="text-[11px] leading-tight font-black text-slate-700 block mb-1 tracking-wide">{dimLabel}</span>
                               <select className="w-full bg-white border rounded-xl p-2 text-xs font-black outline-none shadow-sm text-center" value={dimensions[k]} onChange={e => setDimensions(d => ({ ...d, [k]: e.target.value }))} disabled={(k === 'cm' && selections.axleType?.id === 'axle_b') || (k === 'sb' && isSbLocked) || (k === 'l1' && selectedSeries === 'MX_MR' && frameParts.size?.label === 'Sサイズ')}>
                                 {opts.length > 1 && <option value="">選択</option>}
@@ -1498,6 +1591,7 @@ const App = () => {
                     setWheelie={kidsOptionHandlers.setWheelie}
                     setFender={kidsOptionHandlers.setFender}
                     setCushionTbl={kidsOptionHandlers.setCushionTbl}
+                    setGripOrPush={kidsOptionHandlers.setGripOrPush}
                   />
                   <div className="bg-slate-900 rounded-[2.5rem] p-8 text-white relative overflow-hidden mb-8 border border-blue-500/20">
                     <h3 className="text-xl font-black mb-8 flex items-center gap-3 tracking-widest uppercase"><Heart size={24} className="text-blue-400" /> 5. アクセサリー</h3>

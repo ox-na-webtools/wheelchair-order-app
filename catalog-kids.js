@@ -29,12 +29,18 @@ const CATALOG_KIDS = {
     brakes: [
       {
         id: 'br_dial',
-        name: 'ダイヤルブレーキ',
-        no: 'No.21/22',
+        name: 'ダイヤル下付け',
         price: 5000,
         priceKey: 'kids.brake.br_dial',
       },
     ],
+    uiRules: {
+      brakeHideNo: true,
+      optionDropdownGroups: [
+        { key: 'gripOrPush', optionIds: ['opt_grip', 'opt_push_fixed', 'opt_push_slide'], label: 'グリップ・プッシュハンドル' },
+        { key: 'fender', optionIds: ['opt_fender_s', 'opt_fender_l'], label: '樹脂製フェンダー' },
+      ],
+    },
     wheels: [
       {
         id: 'mx4',
@@ -125,7 +131,8 @@ const CATALOG_KIDS = {
     dimensionRules: {
       // H3: 後座高〔mm〕（規格寸法。±5mm程度の誤差あり）
       h3: [320, 340, 360],
-      h4: { 'ロー': [300, 310, 320], 'ミディアム': [350, 360, 370], 'ハイ': [400, 410, 420] },
+      // H4: バックレストタイプ＆高[mm]。共通範囲。トドラーのみスーパーハイ不可。
+      h4: { 'ロー': [280, 290, 300, 310, 320, 330], 'ミディアム': [330, 340, 350, 360, 370, 380], 'ハイ': [380, 390, 400, 410, 420, 430] },
       lever: [55, 75, 110, 140],
       offset: ['-40'],
       // L8: 車軸前後位置は 50・10 の2か所のみ
@@ -157,6 +164,14 @@ const CATALOG_KIDS = {
         no: 'School',
         price: 204000,
         priceKey: 'kids.base.kids_school',
+        note: 'スクールパッケージに含まれる: ①プッシュハンドル固定式、②ウイリーバー固定式、③樹脂製フェンダー小、④スポークカバー',
+      },
+      {
+        id: 'kids_school_less',
+        name: 'スクールパッケージ スポークカバーレス',
+        no: 'School（スポークカバーなし）',
+        price: 0,
+        priceKey: 'kids.base.kids_school_less',
       },
     ],
     frameOptions: {
@@ -410,14 +425,24 @@ const CATALOG_KIDS = {
         no: 'School',
         price: 204000,
         priceKey: 'kids.base.jr_school',
+        note: 'スクールパッケージに含まれる: ①プッシュハンドル固定式、②ウイリーバー固定式、③樹脂製フェンダー小、④スポークカバー',
+      },
+      {
+        id: 'jr_school_less',
+        name: 'スクールパッケージ スポークカバーレス',
+        no: 'School（スポークカバーなし）',
+        price: 0,
+        priceKey: 'kids.base.jr_school_less',
       },
     ],
     frameOptions: {
-      length: [{ label: 'ショート＆ロー', no: 'No.21x' }, { label: 'ショート＆ミディアム', no: 'No.22x' }],
-      shape: [
-        { label: 'スムーズ', no: 'No.211/221' },
-        { label: 'スムーズワイド', no: 'No.212/222' },
-        { label: 'アップ', no: 'No.213/223' },
+      type: [
+        { label: 'フレーム高ロー & 前方形状スムーズ', no: 'No.211' },
+        { label: 'フレーム高ロー & 前方形状スムーズワイド', no: 'No.212' },
+        { label: 'フレーム高ロー & 前方形状アップ', no: 'No.213' },
+        { label: 'フレーム高ミディアム & 前方形状スムーズ', no: 'No.221' },
+        { label: 'フレーム高ミディアム & 前方形状スムーズワイド', no: 'No.222' },
+        { label: 'フレーム高ミディアム & 前方形状アップ', no: 'No.223' },
       ],
     },
     footrests: KIDS_FOOTRESTS_HI,
@@ -610,13 +635,13 @@ const CATALOG_KIDS = {
     tireBrand: 'KENDA',
   },
   MINI_NEO_A_KIDS: {
-    title: 'ミニネオエーキッズ',
+    title: 'ミニネオ-Aキッズ',
     axleTypes: [],
     casterForks: [],
     baseModels: [
       {
         id: 'a_kids',
-        name: 'ミニネオエーキッズ',
+        name: 'ミニネオ-Aキッズ',
         no: 'miniNEO A-Kids',
         price: 167000,
         priceKey: 'kids.base.a_kids',
@@ -629,15 +654,7 @@ const CATALOG_KIDS = {
       ],
     },
     footrests: KIDS_FOOTRESTS_HI,
-    brakes: [
-      {
-        id: 'br_dial',
-        name: '連動ブレーキ',
-        no: 'No.1',
-        price: 14000,
-        priceKey: 'kids.brake.br_dial_band',
-      },
-    ],
+    brakes: [],
     wheels: [
       {
         id: 'std',
@@ -649,6 +666,13 @@ const CATALOG_KIDS = {
     ],
     wheelSizes: ['16インチ'],
     options: [
+      {
+        id: 'opt_interlock_br',
+        name: '連動ブレーキ',
+        no: 'No.1',
+        price: 14000,
+        priceKey: 'kids.brake.br_dial_band',
+      },
       {
         id: 'opt_cushion_caster',
         name: 'クッションキャスター',
@@ -668,8 +692,7 @@ const CATALOG_KIDS = {
         name: 'アームレスト（標準）',
         no: '標準',
         price: 0,
-        ahLow: [260, 270, 280, 290, 300, 310],
-        ahHigh: [290, 300, 310, 320, 330, 340, 350],
+        ah: [180, 190, 200, 210, 220, 230, 240, 250, 260, 270, 280, 290, 300, 310],
         priceKey: 'kids.option.opt_arm_std',
       },
       {
@@ -696,11 +719,18 @@ const CATALOG_KIDS = {
         priceKey: 'kids.option.opt_band_br',
       },
       {
-        id: 'opt_wheelie',
-        name: 'ウイリーバー',
-        no: 'No.1固定/折りたたみ',
+        id: 'opt_wheelie_fixed',
+        name: 'ウイリーバー 固定式',
+        no: 'No.1',
         price: 16000,
-        priceKey: 'kids.option.opt_wheelie',
+        priceKey: 'kids.option.opt_wheelie_fixed',
+      },
+      {
+        id: 'opt_wheelie_fold',
+        name: 'ウイリーバー 折りたたみ式',
+        no: 'No.2',
+        price: 27000,
+        priceKey: 'kids.option.opt_wheelie_fold',
       },
       {
         id: 'opt_foot_br',
@@ -708,11 +738,26 @@ const CATALOG_KIDS = {
         no: 'No.1',
         price: 16000,
         priceKey: 'kids.option.opt_foot_br',
+        requireWheelieFixed: true,
       },
       {
-        id: 'opt_cushion_tbl',
-        name: 'クッションテーブル',
-        no: 'No.1/2/3',
+        id: 'opt_cushion_tbl_white',
+        name: 'クッションテーブル ホワイト',
+        no: 'No.1',
+        price: 17000,
+        priceKey: 'kids.option.opt_cushion_tbl',
+      },
+      {
+        id: 'opt_cushion_tbl_blue',
+        name: 'クッションテーブル ブルー',
+        no: 'No.2',
+        price: 17000,
+        priceKey: 'kids.option.opt_cushion_tbl',
+      },
+      {
+        id: 'opt_cushion_tbl_pink',
+        name: 'クッションテーブル ピンク',
+        no: 'No.3',
         price: 17000,
         priceKey: 'kids.option.opt_cushion_tbl',
       },
@@ -725,24 +770,27 @@ const CATALOG_KIDS = {
       },
     ],
     dimensionRules: {
-      h4: { 'ロー': [280, 290, 300, 310, 320], 'ミディアム': [330, 340, 350, 360, 370], 'ハイ': [380, 390, 400, 410, 420], 'スーパーハイ': [450, 460] },
+      h4: { 'ロー': [280, 290, 300, 310, 320, 330], 'ミディアム': [330, 340, 350, 360, 370, 380], 'ハイ': [380, 390, 400, 410, 420, 430], 'スーパーハイ': [440, 450, 460, 470, 480] },
       lever: [55, 75, 110, 140],
+      leverWhenInterlock: ['無し', '110'],
       offset: ['0', '-20', '-40'],
       l1Map: { '0': [280, 300], '-20': [260, 280], '-40': [240, 260] },
+      l8Map: { '0': [-40, -50, -60, -70], '-20': [-60, -70, -80, -90], '-40': [-80, -90, -100, -110] },
       w1: [240, 260, 280, 300, 320, 340],
       w2: [5, 10, 15, 20, 25, 30],
       sb: [86, 90, 94, 98, 102, 106],
+      armrestLengths: [{ no: 'No.1', label: '標準' }, { no: 'No.2', label: '+50mm' }],
     },
     tireBrand: null,
   },
   MINI_NEO_A_JUNIOR: {
-    title: 'ミニネオエージュニア',
+    title: 'ミニネオ-Aジュニア',
     axleTypes: [],
     casterForks: [],
     baseModels: [
       {
         id: 'a_jr',
-        name: 'ミニネオエージュニア',
+        name: 'ミニネオ-Aジュニア',
         no: 'miniNEO A-Junior',
         price: 167000,
         priceKey: 'kids.base.a_jr',
@@ -755,15 +803,7 @@ const CATALOG_KIDS = {
       ],
     },
     footrests: KIDS_FOOTRESTS_HI,
-    brakes: [
-      {
-        id: 'br_dial',
-        name: '連動ブレーキ',
-        no: 'No.1',
-        price: 14000,
-        priceKey: 'kids.brake.br_dial_band',
-      },
-    ],
+    brakes: [],
     wheels: [
       {
         id: 'std',
@@ -775,6 +815,13 @@ const CATALOG_KIDS = {
     ],
     wheelSizes: ['16インチ'],
     options: [
+      {
+        id: 'opt_interlock_br',
+        name: '連動ブレーキ',
+        no: 'No.1',
+        price: 14000,
+        priceKey: 'kids.brake.br_dial_band',
+      },
       {
         id: 'opt_cushion_caster',
         name: 'クッションキャスター',
@@ -794,8 +841,7 @@ const CATALOG_KIDS = {
         name: 'アームレスト（標準）',
         no: '標準',
         price: 0,
-        ahLow: [260, 270, 280, 290, 300, 310],
-        ahHigh: [290, 300, 310, 320, 330, 340, 350],
+        ah: [180, 190, 200, 210, 220, 230, 240, 250, 260, 270, 280, 290, 300, 310],
         priceKey: 'kids.option.opt_arm_std',
       },
       {
@@ -822,11 +868,18 @@ const CATALOG_KIDS = {
         priceKey: 'kids.option.opt_band_br',
       },
       {
-        id: 'opt_wheelie',
-        name: 'ウイリーバー',
-        no: 'No.1固定/折りたたみ',
+        id: 'opt_wheelie_fixed',
+        name: 'ウイリーバー 固定式',
+        no: 'No.1',
         price: 16000,
-        priceKey: 'kids.option.opt_wheelie',
+        priceKey: 'kids.option.opt_wheelie_fixed',
+      },
+      {
+        id: 'opt_wheelie_fold',
+        name: 'ウイリーバー 折りたたみ式',
+        no: 'No.2',
+        price: 27000,
+        priceKey: 'kids.option.opt_wheelie_fold',
       },
       {
         id: 'opt_foot_br',
@@ -834,11 +887,26 @@ const CATALOG_KIDS = {
         no: 'No.1',
         price: 16000,
         priceKey: 'kids.option.opt_foot_br',
+        requireWheelieFixed: true,
       },
       {
-        id: 'opt_cushion_tbl',
-        name: 'クッションテーブル',
-        no: 'No.1/2/3',
+        id: 'opt_cushion_tbl_white',
+        name: 'クッションテーブル ホワイト',
+        no: 'No.1',
+        price: 17000,
+        priceKey: 'kids.option.opt_cushion_tbl',
+      },
+      {
+        id: 'opt_cushion_tbl_blue',
+        name: 'クッションテーブル ブルー',
+        no: 'No.2',
+        price: 17000,
+        priceKey: 'kids.option.opt_cushion_tbl',
+      },
+      {
+        id: 'opt_cushion_tbl_pink',
+        name: 'クッションテーブル ピンク',
+        no: 'No.3',
         price: 17000,
         priceKey: 'kids.option.opt_cushion_tbl',
       },
@@ -851,25 +919,30 @@ const CATALOG_KIDS = {
       },
     ],
     dimensionRules: {
-      h4: { 'ロー': [280, 290, 300, 310, 320], 'ミディアム': [330, 340, 350, 360, 370], 'ハイ': [380, 390, 400, 410, 420], 'スーパーハイ': [450, 460] },
+      h4: { 'ロー': [280, 290, 300, 310, 320, 330], 'ミディアム': [330, 340, 350, 360, 370, 380], 'ハイ': [380, 390, 400, 410, 420, 430], 'スーパーハイ': [440, 450, 460, 470, 480] },
       lever: [55, 75, 110, 140],
+      leverWhenInterlock: ['無し', '110'],
+      offset: ['0', '-20', '-40'],
+      // E L1: シート奥行[mm] はシート奥行調節バックレスト寸法（オフセット）に連動
+      l1Map: { '0': [350, 380], '-20': [330, 360], '-40': [310, 340] },
+      l8Map: { '0': [-40, -50, -60, -70], '-20': [-60, -70, -80, -90], '-40': [-80, -90, -100, -110] },
       w1: [280, 300, 320, 340],
-      l1: [310, 340, 350, 360, 380],
       w2: [5, 10, 15, 20, 25, 30],
       sb: [86, 90, 94, 98, 102, 106],
+      armrestLengths: [{ no: 'No.1', label: '標準' }, { no: 'No.2', label: '+50mm' }],
     },
     tireBrand: null,
   },
   MINI_NEO_E_KIDS: {
-    title: 'ミニネオイーキッズ',
+    title: 'ミニネオ-Eキッズ',
     axleTypes: [],
     casterForks: [],
     baseModels: [
       {
         id: 'e_kids',
-        name: 'ミニネオイーキッズ（電動）',
+        name: 'ミニネオ-Eキッズ（電動）',
         no: 'miniNEO E-Kids',
-        price: 594000,
+        price: 637000,
         priceKey: 'kids.base.e_kids',
       },
     ],
@@ -880,11 +953,30 @@ const CATALOG_KIDS = {
         { label: 'スーパーショート＆アップ', no: 'No.113' },
       ],
     },
+    // 新型電動ユニット JWG-1（フレーム構成とフットレストの間の選択）
+    jwg1Options: {
+      clutchLever: [
+        { label: '右側取付け', no: '右' },
+        { label: '左側取付け', no: '左' },
+      ],
+      controllerPos: [
+        { label: '右側取付け', no: '右' },
+        { label: '左側取付け', no: '左' },
+      ],
+      switch: [
+        { id: 'jwg1_switch_push', label: 'No.1 押しボタンスイッチ', no: 'No.1', price: 0 },
+        { id: 'jwg1_switch_toggle', label: 'No.2 トグルスイッチ', no: 'No.2', priceKey: 'gwe.jwg1.switch_toggle' },
+      ],
+    },
+    // ハンドリムはアルマイトのみ・標準0円・番号なし
+    handrims: [
+      { id: 'hr_alu', name: 'アルマイト', no: '', price: 0 },
+    ],
     footrests: KIDS_FOOTRESTS_HI,
     brakes: [
       {
         id: 'br_std',
-        name: '標準ブレーキ',
+        name: 'ダイヤル下付け',
         no: '-',
         price: 0,
         priceKey: 'kids.brake.br_std',
@@ -929,34 +1021,39 @@ const CATALOG_KIDS = {
         price: 7500,
         priceKey: 'kids.option.opt_joystick',
       },
+      // アームレスト: No.12 ミディアム / No.13 ハイ、AH・AL ドロップダウン、標準0円
       {
-        id: 'opt_battery_li',
-        name: 'リチウムイオンバッテリー',
-        no: '+63,000',
-        price: 63000,
-        priceKey: 'kids.option.opt_battery_li',
+        id: 'opt_arm_std',
+        name: 'アームレスト（標準）',
+        no: 'No.12/13',
+        price: 0,
+        ahMid: [220, 230, 240, 250, 260, 270],
+        ahHigh: [270, 280, 290, 300, 310],
       },
     ],
     dimensionRules: {
-      h4: { 'ロー': [300, 310, 320], 'ミディアム': [350, 360, 370], 'ハイ': [400, 410, 420], 'スーパーハイ': [450, 460] },
+      h4: { 'ロー': [280, 290, 300, 310, 320, 330], 'ミディアム': [330, 340, 350, 360, 370, 380], 'ハイ': [380, 390, 400, 410, 420, 430], 'スーパーハイ': [440, 450, 460, 470, 480] },
       lever: [55, 75, 110, 140],
       w1: [240, 260, 280, 300, 320, 340],
       l1: [260, 280],
-      w2: [5, 10, 15, 20, 25, 30],
+      offset: ['-20'],
+      l8Map: { '-20': [-25] },
+      w2: [20],
       sb: [86, 90, 94, 98, 102, 106],
+      armrestLengths: [{ no: 'No.1', label: '標準' }, { no: 'No.2', label: '+50mm' }],
     },
     tireBrand: null,
   },
   MINI_NEO_E_JUNIOR: {
-    title: 'ミニネオイージュニア',
+    title: 'ミニネオ-Eジュニア',
     axleTypes: [],
     casterForks: [],
     baseModels: [
       {
         id: 'e_jr',
-        name: 'ミニネオイージュニア（電動）',
+        name: 'ミニネオ-Eジュニア（電動）',
         no: 'miniNEO E-Junior',
-        price: 594000,
+        price: 637000,
         priceKey: 'kids.base.e_jr',
       },
     ],
@@ -970,11 +1067,28 @@ const CATALOG_KIDS = {
         { label: 'ショート＆ミディアム＆アップ', no: 'No.223' },
       ],
     },
+    jwg1Options: {
+      clutchLever: [
+        { label: '右側取付け', no: '右' },
+        { label: '左側取付け', no: '左' },
+      ],
+      controllerPos: [
+        { label: '右側取付け', no: '右' },
+        { label: '左側取付け', no: '左' },
+      ],
+      switch: [
+        { id: 'jwg1_switch_push', label: 'No.1 押しボタンスイッチ', no: 'No.1', price: 0 },
+        { id: 'jwg1_switch_toggle', label: 'No.2 トグルスイッチ', no: 'No.2', priceKey: 'gwe.jwg1.switch_toggle' },
+      ],
+    },
+    handrims: [
+      { id: 'hr_alu', name: 'アルマイト', no: '', price: 0 },
+    ],
     footrests: KIDS_FOOTRESTS_HI,
     brakes: [
       {
         id: 'br_std',
-        name: '標準ブレーキ',
+        name: 'ダイヤル下付け',
         no: '-',
         price: 0,
         priceKey: 'kids.brake.br_std',
@@ -1026,21 +1140,26 @@ const CATALOG_KIDS = {
         price: 7500,
         priceKey: 'kids.option.opt_joystick',
       },
+      // アームレスト: No.12 ミディアム / No.13 ハイ、AH・AL ドロップダウン、標準0円
       {
-        id: 'opt_battery_li',
-        name: 'リチウムイオンバッテリー',
-        no: '+63,000',
-        price: 63000,
-        priceKey: 'kids.option.opt_battery_li',
+        id: 'opt_arm_std',
+        name: 'アームレスト（標準）',
+        no: 'No.12/13',
+        price: 0,
+        ahMid: [220, 230, 240, 250, 260, 270],
+        ahHigh: [270, 280, 290, 300, 310],
       },
     ],
     dimensionRules: {
-      h4: { 'ロー': [280, 290, 300, 310, 320], 'ミディアム': [330, 340, 350, 360, 370], 'ハイ': [380, 390, 400, 410, 420], 'スーパーハイ': [450, 460] },
+      h4: { 'ロー': [280, 290, 300, 310, 320, 330], 'ミディアム': [330, 340, 350, 360, 370, 380], 'ハイ': [380, 390, 400, 410, 420, 430], 'スーパーハイ': [440, 450, 460, 470, 480] },
       lever: [55, 75, 110, 140],
       w1: [280, 300, 320, 340],
-      l1: [330, 350, 360, 380],
-      w2: [5, 10, 15, 20, 25, 30],
+      l1: [330, 360],
+      offset: ['-20'],
+      l8Map: { '-20': [-25] },
+      w2: [20],
       sb: [86, 90, 94, 98, 102, 106],
+      armrestLengths: [{ no: 'No.1', label: '標準' }, { no: 'No.2', label: '+50mm' }],
     },
     tireBrand: null,
   },
@@ -1223,3 +1342,7 @@ const CATALOG_KIDS = {
     ],
   },
 };
+
+// スクールパッケージで標準装備になるオプション（useSyncSchoolPackageOptions で参照）
+window.SCHOOL_PACKAGE_BASE_IDS = ['kids_school', 'jr_school', 'kids_school_less', 'jr_school_less'];
+window.SCHOOL_PACKAGE_STANDARD_OPTION_IDS = ['opt_push_fixed', 'opt_wheelie_fixed', 'opt_fender_s'];

@@ -14,6 +14,7 @@
  * @param {object} params.dims.casterWheelType
  * @param {object} params.dims.casterWheelSize
  * @param {object} params.dims.handrimResolved
+ * @param {object} params.dims.jwg1Selections - ミニネオ-E用 JWG-1 選択（クラッチ・コントローラー・スイッチ）
  * @param {object} params.dims.paintPlans - PAINT_PLANS
  * @param {object} params.dims.gweUnitDetailMaster - GWE_UNIT_DETAIL_MASTER
  * @param {object} params.dims.wheelNoMaster - WHEEL_NO_MASTER
@@ -31,7 +32,7 @@ export function calcPrice({ catalog, priceMaster, selections, dims }) {
     ? selections.baseModel?.id
     : selections.package?.id;
   const isEnjoy = () => effectivePackageId === 'kids_enjoy' || effectivePackageId === 'jr_enjoy';
-  const isSchool = () => effectivePackageId === 'kids_school' || effectivePackageId === 'jr_school';
+  const isSchool = () => effectivePackageId === 'kids_school' || effectivePackageId === 'jr_school' || effectivePackageId === 'kids_school_less' || effectivePackageId === 'jr_school_less';
   const itemPrice = (item) => {
     if (!item) return 0;
     if (item.priceKeyEnjoy != null && item.priceKeySchool != null) {
@@ -54,6 +55,7 @@ export function calcPrice({ catalog, priceMaster, selections, dims }) {
     casterWheelType,
     casterWheelSize,
     handrimResolved,
+    jwg1Selections,
     paintPlans,
     gweUnitDetailMaster,
     wheelNoMaster,
@@ -99,6 +101,9 @@ export function calcPrice({ catalog, priceMaster, selections, dims }) {
       });
     }
   }
+  if (catalog?.jwg1Options && jwg1Selections?.switch) {
+    sum += (itemPrice(jwg1Selections.switch) ?? 0);
+  }
   const totalAmount = sum;
 
   // totalLineItems
@@ -136,6 +141,18 @@ export function calcPrice({ catalog, priceMaster, selections, dims }) {
       no: casterWheelSize.no,
       price: itemPrice(casterWheelType),
     });
+  }
+  if (catalog?.jwg1Options && jwg1Selections) {
+    if (jwg1Selections.clutchLever) {
+      items.push({ label: 'クラッチレバー位置', name: jwg1Selections.clutchLever.label, no: jwg1Selections.clutchLever.no, price: 0 });
+    }
+    items.push({ label: 'リチウムイオンバッテリー', name: '36V 6.45Ah 標準', no: '-', price: 0 });
+    if (jwg1Selections.controllerPos) {
+      items.push({ label: 'コントローラー位置', name: jwg1Selections.controllerPos.label, no: jwg1Selections.controllerPos.no, price: 0 });
+    }
+    if (jwg1Selections.switch) {
+      items.push({ label: 'スイッチ', name: jwg1Selections.switch.label, no: jwg1Selections.switch.no, price: itemPrice(jwg1Selections.switch) });
+    }
   }
   add('フットレスト', selections.footrest);
   add('ブレーキ', selections.brake);

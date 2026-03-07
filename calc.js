@@ -420,7 +420,7 @@
       ) {
         missing.push('タイヤカラー');
       }
-      if ((HANDRIM_OPTIONS || []).length && !selections.handrim) {
+      if ((HANDRIM_OPTIONS || []).length && !selections.handrim && selectedSeries !== 'MINI_NEO_A_KIDS' && selectedSeries !== 'MINI_NEO_A_JUNIOR') {
         missing.push('ハンドリム');
       }
     }
@@ -461,7 +461,11 @@
       }
     });
 
-    if (
+    if (armrestConfig && armrestConfig.armrestSingleHeight) {
+      if (armrestSel.kind && !armrestSel.ah) {
+        missing.push('アームレスト高');
+      }
+    } else if (
       armrestSel.kind &&
       (!armrestSel.lh || !armrestSel.ah)
     ) {
@@ -474,7 +478,11 @@
       armrestConfig.armrestLengths &&
       armrestConfig.armrestLengths.length &&
       (selectedSeries === 'MINI_NEO_KIDS' ||
-        selectedSeries === 'MINI_NEO_JUNIOR') &&
+        selectedSeries === 'MINI_NEO_JUNIOR' ||
+        selectedSeries === 'MINI_NEO_A_KIDS' ||
+        selectedSeries === 'MINI_NEO_A_JUNIOR' ||
+        selectedSeries === 'MINI_NEO_E_KIDS' ||
+        selectedSeries === 'MINI_NEO_E_JUNIOR') &&
       !armrestSel.al
     ) {
       missing.push('アームレスト長');

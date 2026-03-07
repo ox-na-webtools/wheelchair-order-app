@@ -35,21 +35,26 @@ export function upsertArmrestOption(next, setSelectedOptions) {
  * @returns {object|null} - オプションオブジェクト or null
  */
 export function computeArmrestOption(armrestSel, armrestConfig, selectedSeries, baseModel, catalogVariant) {
-  if (!armrestSel.kind || !armrestSel.lh || !armrestSel.ah) return null;
-  const needsAl = armrestConfig.armrestLengths?.length && (selectedSeries === 'MINI_NEO_KIDS' || selectedSeries === 'MINI_NEO_JUNIOR');
+  const armrestSingleHeight = !!armrestConfig.armrestSingleHeight;
+  if (!armrestSel.kind || !armrestSel.ah) return null;
+  if (!armrestSingleHeight && !armrestSel.lh) return null;
+  const needsAl = armrestConfig.armrestLengths?.length && (selectedSeries === 'MINI_NEO_KIDS' || selectedSeries === 'MINI_NEO_JUNIOR' || selectedSeries === 'MINI_NEO_A_KIDS' || selectedSeries === 'MINI_NEO_A_JUNIOR' || selectedSeries === 'MINI_NEO_E_KIDS' || selectedSeries === 'MINI_NEO_E_JUNIOR');
   if (needsAl && !armrestSel.al) return null;
   const group = armrestSel.kind === 'arm' ? armrestConfig.arm : armrestConfig.flip;
-  const base = armrestSel.lh === 'ロー' ? group?.low : armrestSel.lh === 'ミディアム' ? group?.mid : group?.high;
+  const base = armrestSingleHeight ? group?.single : (armrestSel.lh === 'ロー' ? group?.low : armrestSel.lh === 'ミディアム' ? group?.mid : group?.high);
   if (!base) return null;
   let calculatedPrice = base.price || 0;
   const isStandardZeroSeries = (selectedSeries === 'NEO' || selectedSeries === 'GWE' || selectedSeries === 'COTON' || (selectedSeries === 'MX_MR' && baseModel?.id === 'mx_base'));
-  const isKidsArmrestSeries = catalogVariant === 'kids' && ['MINI_NEO_KIDS', 'MINI_NEO_JUNIOR', 'MINI_NEO_A_KIDS', 'MINI_NEO_A_JUNIOR'].includes(selectedSeries);
+  const isKidsArmrestSeries = catalogVariant === 'kids' && ['MINI_NEO_KIDS', 'MINI_NEO_JUNIOR', 'MINI_NEO_A_KIDS', 'MINI_NEO_A_JUNIOR', 'MINI_NEO_E_KIDS', 'MINI_NEO_E_JUNIOR'].includes(selectedSeries);
+  const isEKidsOrEJr = selectedSeries === 'MINI_NEO_E_KIDS' || selectedSeries === 'MINI_NEO_E_JUNIOR';
   if (selectedSeries === 'MINI_NEO_TODDLER') {
     calculatedPrice = base.price ?? 0;
+  } else if (isEKidsOrEJr) {
+    calculatedPrice = 0;
   } else if (isStandardZeroSeries) {
     calculatedPrice = (selectedSeries === 'COTON' || armrestSel.kind === 'arm') ? 0 : 6000;
   } else if (isKidsArmrestSeries) {
-    const isKidsOrJrSchool = (selectedSeries === 'MINI_NEO_KIDS' && baseModel?.id === 'kids_school') || (selectedSeries === 'MINI_NEO_JUNIOR' && baseModel?.id === 'jr_school');
+    const isKidsOrJrSchool = (selectedSeries === 'MINI_NEO_KIDS' && (baseModel?.id === 'kids_school' || baseModel?.id === 'kids_school_less')) || (selectedSeries === 'MINI_NEO_JUNIOR' && (baseModel?.id === 'jr_school' || baseModel?.id === 'jr_school_less'));
     calculatedPrice = armrestSel.kind === 'arm' ? (isKidsOrJrSchool ? 0 : 22000) : 6000;
   } else if (selectedSeries === 'MX_MR' && baseModel?.id === 'mr_base') {
     calculatedPrice = armrestSel.kind === 'arm' ? 22000 : 28000;
@@ -60,6 +65,21 @@ export function computeArmrestOption(armrestSel, armrestConfig, selectedSeries, 
     if (alObj) note += ` / AL: ${alObj.label} (${alObj.no})`;
   }
   return { id: `${base.id}__${armrestSel.ah}${armrestSel.al ? `_al_${armrestSel.al}` : ''}`, name: base.name, no: base.no, price: calculatedPrice, note, __group: 'ARMREST' };
+}
+
+/**
+ * グリップ／プッシュハンドル（固定式・スライド式）のいずれか1つのみ選択する setter
+ */
+export function createSetGripOrPush(setSelectedOptions, gripOpt, pushFixed, pushSlide) {
+  return (v) => {
+    setSelectedOptions(prev => {
+      let n = (prev || []).filter(o => o && o.id !== 'opt_grip' && o.id !== 'opt_push_fixed' && o.id !== 'opt_push_slide');
+      if (v === 'opt_grip' && gripOpt) n.push(gripOpt);
+      if (v === 'opt_push_fixed' && pushFixed) n.push(pushFixed);
+      if (v === 'opt_push_slide' && pushSlide) n.push(pushSlide);
+      return n;
+    });
+  };
 }
 
 /**
@@ -82,7 +102,7 @@ export function createSetPush(setSelectedOptions, pushFixed, pushSlide) {
 export function createSetWheelie(setSelectedOptions, wheelieFixed, wheelieFold) {
   return (v) => {
     setSelectedOptions(prev => {
-      let n = (prev || []).filter(o => o && o.id !== 'opt_wheelie_fixed' && o.id !== 'opt_wheelie_fold');
+      let n = (prev || []).filter(o => o && o.id !== 'opt_wheelie' && o.id !== 'opt_wheelie_fixed' && o.id !== 'opt_wheelie_fold');
       if (v === 'opt_wheelie_fixed' && wheelieFixed) n.push(wheelieFixed);
       if (v === 'opt_wheelie_fold' && wheelieFold) n.push(wheelieFold);
       return n;
